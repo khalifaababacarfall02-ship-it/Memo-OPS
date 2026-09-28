@@ -1,6 +1,16 @@
-// Database types for supabase-js, matching supabase/migrations.
+// Database types for supabase-js, matching supabase/migrations/20260928120000_memo_app.sql
+// (same shape as `supabase gen types`: Insert makes optional what has a default or is nullable).
 // Keep in sync with the SQL (or regenerate with `npm run db:types` against a
 // running Supabase and keep the aliases at the bottom).
+//
+// The types describe the tables; the guard triggers decide what a signed-in user may write:
+// - memos insert: author_id = the caller, status = "draft", decided_at and asana_task_gid = null.
+// - memos update: id, team, author_id, created_at never change; title, content, lang and
+//   decider_id only by the author (or an admin) while draft / to_decide; status only along
+//   the workflow (src/lib/memo/model.ts); decided_at, updated_at, search_text are derived.
+// - memo_answers: answered_by = the caller; only the decision maker (or an admin) while to_decide.
+// - profiles: id and email never change; only admins change is_admin.
+// Error messages: see the header of the migration.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
