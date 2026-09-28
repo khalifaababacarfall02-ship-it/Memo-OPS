@@ -1,0 +1,7 @@
+/* Shell additions (not in the prototype): the account pill next to the
+   language switch reuses the `.lang` pill look. */
+.brand-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.acct{display:flex;align-items:center;background:rgba(255,255,255,.12);border-radius:999px;padding:3px}
+.acct form{margin:0;display:flex}
+.acct button,.acct-link{border:0;background:transparent;color:#fff;padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px;text-decoration:none;line-height:1.5}
+.acct button:hover,.acct-link:hover{background:rgba(255,255,255,.14)}

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Newsreader, Schibsted_Grotesk } from "next/font/google";
+import { ToastProvider } from "@/components/shell/Toast";
+import { getLang } from "@/lib/i18n";
 import "./globals.css";
 
 // Same families as the prototype's Google Fonts link, self-hosted by next/font.
@@ -19,7 +21,7 @@ const fontText = Newsreader({
 
 export const metadata: Metadata = {
   title: "Mémo BoxHero",
-  description: "Pas de mémo, pas de réunion.",
+  description: "Pas de mémo, pas de réunion. · No memo, no meeting.",
 };
 
 export const viewport: Viewport = {
@@ -28,10 +30,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const lang = await getLang();
   return (
-    <html lang="fr" className={`${fontUi.variable} ${fontText.variable}`}>
-      <body>{children}</body>
+    <html lang={lang} className={`${fontUi.variable} ${fontText.variable}`}>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }
