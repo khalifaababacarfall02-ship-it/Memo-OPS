@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { blankContent, type MemoRole, type MemoStatus } from "@/lib/memo/model";
 import {
   answerPlaceholder,
+  lockedKey,
   mineRows,
+  saveErrorKey,
   permissionsOf,
   readOnlyReason,
   roleOf,
@@ -88,7 +90,24 @@ describe("submit and errors", () => {
     expect(statusErrorKey({ code: "42501", message: "memo status change not allowed: draft -> decided" })).toBe("notAllowed");
     expect(statusErrorKey({ code: "PGRST116", message: "status not changed" })).toBe("notAllowed");
     expect(statusErrorKey({ message: "Failed to fetch" })).toBe("saveError");
+    expect(statusErrorKey({ code: "PGRST303", message: "JWT expired", status: 401 })).toBe("sessionExpired");
     expect(statusErrorKey(null)).toBe("notAllowed");
+  });
+
+  it("explains failed autosaves and locked memos", () => {
+    expect(saveErrorKey("network")).toBe("saveError");
+    expect(saveErrorKey("auth")).toBe("sessionExpired");
+    expect(saveErrorKey("tooLong")).toBe("tooLong");
+    expect(saveErrorKey("needTitle")).toBe("needTitle");
+    expect(saveErrorKey("notAllowed")).toBe("notAllowed");
+    expect(lockedKey("decided")).toBe("lockedDecided");
+    expect(lockedKey("archived")).toBe("lockedArchived");
+    expect(lockedKey("draft")).toBe("answersClosed");
+  });
+
+  it("the mini memo's 'Mark as decided' does not mention answers", () => {
+    const [decide] = workflowButtons("to_decide", DECIDER, { stored: true, mini: true });
+    expect(decide).toMatchObject({ transition: "decide", sub: undefined });
   });
 });
 

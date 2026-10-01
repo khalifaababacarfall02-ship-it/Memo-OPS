@@ -35,6 +35,26 @@ const golden: Golden = JSON.parse(
 const COVER = /^<div class="pg cover"><img src="[^"]*" alt="">/;
 const withCover = (html: string, src: string) => html.replace(COVER, `<div class="pg cover"><img src="${src}" alt="">`);
 
+// Deliberate deviation from the prototype: it escaped the decision maker's
+// answers without turning their line breaks into <br>, so a multi-line answer
+// collapsed into one line in the copied HTML (Asana) and in the PDF. The app
+// keeps the breaks. For golden cases with multi-line answers the expected HTML
+// is the prototype's with "\n" → "<br>" inside those answers; every other
+// case (all single-line answers) must still be byte-identical, and the plain
+// text is identical in all cases.
+const protoEsc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const answersOf = (c: GoldenCase) => Object.values(c.input.answers ?? {}).filter((a): a is string => typeof a === "string");
+const multiline = (c: GoldenCase) => answersOf(c).some((a) => a.includes("\n"));
+function withAnswerBreaks(c: GoldenCase, html: string): string {
+  let out = html;
+  for (const a of answersOf(c).filter((x) => x.includes("\n"))) {
+    const e = protoEsc(a);
+    out = out.split(`→ ${e}</li>`).join(`→ ${e.replace(/\n/g, "<br>")}</li>`);
+  }
+  return out;
+}
+const expectedHTML = (c: GoldenCase, html: string) => (multiline(c) ? withAnswerBreaks(c, html) : html);
+
 describe("prototype parity (golden fixtures)", () => {
   it("covers every team and language", () => {
     const seen = new Set(golden.cases.map((c) => `${c.input.team}/${c.input.lang}`));
@@ -43,16 +63,17 @@ describe("prototype parity (golden fixtures)", () => {
   });
 
   describe.each(golden.cases.map((c) => [c.name, c] as const))("%s", (_, c) => {
-    it("asanaHTML is identical", () => {
-      expect(asanaHTML(c.input)).toBe(c.asanaHTML);
+    it("asanaHTML is identical (multi-line answers: with <br>)", () => {
+      expect(asanaHTML(c.input)).toBe(expectedHTML(c, c.asanaHTML));
     });
-    it("htmlToText is identical to the DOM-based version", () => {
+    it("htmlToText is identical to the DOM-based version, and the copied text is unchanged", () => {
       expect(htmlToText(c.asanaHTML)).toBe(c.text);
+      expect(htmlToText(asanaHTML(c.input))).toBe(c.text);
     });
-    it("exportSheetHTML is identical apart from the cover src", () => {
+    it("exportSheetHTML is identical apart from the cover src (multi-line answers: with <br>)", () => {
       const html = exportSheetHTML(c.input);
       expect(html.startsWith(`<div class="pg cover"><img src="${teamCover(c.input.team)}" alt="">`)).toBe(true);
-      expect(withCover(html, golden.coverPlaceholder)).toBe(c.exportSheetHTML);
+      expect(withCover(html, golden.coverPlaceholder)).toBe(expectedHTML(c, c.exportSheetHTML));
     });
     it("pdfFileName is identical", () => {
       expect(pdfFileName(c.input)).toBe(c.pdfFileName);
@@ -67,6 +88,26 @@ describe("prototype parity (golden fixtures)", () => {
       expect(stripIds(ex.content)).toEqual(stripIds(c.input.content));
       expect(asanaHTML({ team: c.input.team, lang: c.input.lang, ...ex })).toBe(c.asanaHTML);
     }
+  });
+
+  it("keeps the line breaks of multi-line answers in the copied HTML and the PDF sheet", () => {
+    const cases = golden.cases.filter(multiline);
+    expect(cases.length).toBeGreaterThanOrEqual(5);
+    for (const c of cases) {
+      // The deviation really applies (the prototype's output had raw newlines there).
+      expect(expectedHTML(c, c.asanaHTML)).not.toBe(c.asanaHTML);
+      expect(expectedHTML(c, c.exportSheetHTML)).not.toBe(c.exportSheetHTML);
+    }
+    const m: ExportMemo = {
+      team: "ops",
+      lang: "fr",
+      title: "T",
+      content: { ...exampleMemo("fr", "ops").content, qs: [{ id: "q1", q: "On y va ?" }] } as MemoContent,
+      answers: { q1: "Oui.\nMais <après> & lundi" },
+    };
+    expect(asanaHTML(m)).toContain("<li>On y va ?<br>→ Oui.<br>Mais &lt;après&gt; &amp; lundi</li>");
+    expect(exportSheetHTML(m)).toContain("<li>On y va ?<br>→ Oui.<br>Mais &lt;après&gt; &amp; lundi</li>");
+    expect(htmlToText(asanaHTML(m))).toContain("On y va ?\n→ Oui.\nMais <après> & lundi");
   });
 
   it("uses a custom cover src when given one", () => {

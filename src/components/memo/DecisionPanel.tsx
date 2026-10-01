@@ -48,9 +48,16 @@ export function DecisionPanel({
   onTransition: (t: Transition) => void;
 }) {
   const u = ui(lang);
+  // Two people with the same name: show their emails too.
+  const counts = new Map<string, number>();
+  for (const p of people) counts.set(p.name.toLowerCase(), (counts.get(p.name.toLowerCase()) ?? 0) + 1);
+  const label = (p: Person) => ((counts.get(p.name.toLowerCase()) ?? 0) > 1 && p.name !== p.email ? `${p.name} · ${p.email}` : p.name);
+  // A memo to decide must keep a decision maker: no empty choice then (unless none is set).
+  const emptyChoice = status !== "to_decide" || !deciderId;
   return (
     <div className="panel decision" id="decision">
-      <h3 className="dhead">
+      {/* Focused after a workflow step (the pressed button may disappear). */}
+      <h3 className="dhead" id="dHead" tabIndex={-1}>
         {u.decisionH}
         <span className={`badge st-${status}`} id="memoStatus">
           {u.status[status]}
@@ -62,10 +69,14 @@ export function DecisionPanel({
             {u.deciderL}
           </label>
           <select id="fDecider" className="dsel" value={deciderId ?? ""} onChange={(e) => onDecider(e.target.value || null)}>
-            <option value="">{u.deciderPh}</option>
+            {emptyChoice && (
+              <option value="" disabled={status === "to_decide"}>
+                {u.deciderPh}
+              </option>
+            )}
             {people.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {label(p)}
               </option>
             ))}
           </select>

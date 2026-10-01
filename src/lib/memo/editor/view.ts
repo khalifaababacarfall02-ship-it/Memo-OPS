@@ -11,12 +11,13 @@ import {
   canEditContent,
   canTransition,
 } from "@/lib/memo/model";
+import { type SaveErrorKind, classifyError } from "./errors";
 
 export function roleOf(viewer: { id: string; isAdmin: boolean }, memo: { authorId: string; deciderId: string | null }): MemoRole {
   return { isAuthor: memo.authorId === viewer.id, isDecider: memo.deciderId === viewer.id, isAdmin: viewer.isAdmin };
 }
 
-type UiKey = { [K in keyof UiStrings]: UiStrings[K] extends string ? K : never }[keyof UiStrings];
+export type UiKey = { [K in keyof UiStrings]: UiStrings[K] extends string ? K : never }[keyof UiStrings];
 
 /** Why the sheet is read-only (null when the viewer may edit it). */
 export function readOnlyReason(status: MemoStatus, role: MemoRole): "notAuthor" | "lockedDecided" | "lockedArchived" | null {
@@ -47,7 +48,8 @@ export function workflowButtons(status: MemoStatus, role: MemoRole, opts: { stor
       case "submit":
         return { transition: t, label: "submit", sub: opts.mini ? "submitSubMini" : "submitSub", primary: true };
       case "decide":
-        return { transition: t, label: "markDecided", sub: "markDecidedSub", primary: true };
+        // The mini memo has no questions: no "your answers are saved" under it.
+        return { transition: t, label: "markDecided", sub: opts.mini ? undefined : "markDecidedSub", primary: true };
       case "withdraw":
         return { transition: t, label: "backToDraft", primary: false };
       case "reopen":
@@ -82,11 +84,52 @@ export function submitProblem(title: string, deciderId: string | null): "needTit
  * `{ code, message }` through (see the migration header); an empty result
  * (RLS hid the row) is "not allowed" too.
  */
-export function statusErrorKey(error: { code?: string; message?: string } | null): UiKey {
-  const m = error?.message ?? "";
-  if (/decision maker and a title/.test(m)) return "needDecider";
-  if (!error || error.code === "42501" || error.code === "PGRST116" || /not allowed|only the/.test(m)) return "notAllowed";
-  return "saveError";
+export function statusErrorKey(error: { code?: string; message?: string; status?: number } | null): UiKey {
+  if (!error) return "notAllowed";
+  switch (classifyError(error)) {
+    case "needDecider":
+    case "needTitle":
+      return "needDecider";
+    case "network":
+      return "saveError";
+    case "auth":
+      return "sessionExpired";
+    default:
+      return "notAllowed";
+  }
+}
+
+/** The memo can no longer be edited (or answered) because it is now in `status`. */
+export function lockedKey(status: MemoStatus): UiKey {
+  if (status === "decided") return "lockedDecided";
+  if (status === "archived") return "lockedArchived";
+  return "answersClosed";
+}
+
+/** Message for a failed autosave (the label under "Ton mémo" and the toast). */
+export function saveErrorKey(kind: SaveErrorKind): UiKey {
+  switch (kind) {
+    case "network":
+      return "saveError";
+    case "auth":
+      return "sessionExpired";
+    case "locked":
+      return "lockedDecided";
+    case "notAllowed":
+      return "notAllowed";
+    case "notFound":
+      return "notFound";
+    case "tooLong":
+      return "tooLong";
+    case "needDecider":
+      return "needDecider";
+    case "needTitle":
+      return "needTitle";
+    case "questionGone":
+      return "answerDropped";
+    case "invalid":
+      return "errorMsg";
+  }
 }
 
 /** Placeholder of the answer box: the decider is invited to answer, everyone else waits. */

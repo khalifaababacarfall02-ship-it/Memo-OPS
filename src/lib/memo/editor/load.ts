@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 // Server-side data for the editor pages, read through RLS with the viewer's
 // session: the memo and its answers, the people directory (decision maker
 // select) and the viewer's recent memos for the rail ("Mes mémos").
@@ -18,8 +19,11 @@ export const MINE_LIMIT = 12;
 const MEMO_COLUMNS =
   "id, team, lang, title, author_id, decider_id, status, content, asana_task_gid, decided_at, updated_at" as const;
 
-/** The memo as the viewer may see it, or null (unknown id, or hidden by RLS). */
-export async function loadMemo(
+/**
+ * The memo as the viewer may see it, or null (unknown id, or hidden by RLS).
+ * Cached for the request: the page and its metadata (tab title) read it once.
+ */
+export const loadMemo = cache(async function loadMemo(
   id: string,
   uiLang: Lang,
 ): Promise<{ memo: EditorMemo; answers: Record<string, string> } | null> {
@@ -51,7 +55,7 @@ export async function loadMemo(
     },
     answers,
   };
-}
+});
 
 /** The rail's data: everyone who can decide, and the viewer's recent memos (not archived). */
 export async function loadRail(viewerId: string, uiLang: Lang): Promise<{ people: Person[]; mine: MineItem[] }> {

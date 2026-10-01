@@ -56,3 +56,29 @@ export function setShowExamples(show: boolean): void {
   }
   window.dispatchEvent(new Event(SHOW_EX_EVENT));
 }
+
+// ---------- a fresh editor for "Nouveau mémo" on /memos/new ----------
+// The /memos/new editor survives router.refresh() (FR/EN switch while its
+// first save is in flight must not reset it), so it is not keyed by the
+// server render. The editor's own navigations to a new memo at the same URL
+// bump this counter, which keys a fresh one.
+
+let newMemoVisit = 0;
+const visitListeners = new Set<() => void>();
+
+export function startFreshNewMemo(): void {
+  newMemoVisit += 1;
+  visitListeners.forEach((l) => l());
+}
+
+export const useNewMemoVisit = (): number =>
+  useSyncExternalStore(
+    (onChange) => {
+      visitListeners.add(onChange);
+      return () => {
+        visitListeners.delete(onChange);
+      };
+    },
+    () => newMemoVisit,
+    () => 0,
+  );

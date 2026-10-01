@@ -129,6 +129,56 @@ describe("Autosave", () => {
     expect(calls[1].value).toBe("new");
   });
 
+  it("a non-retryable failure is not retried, nor flushed again; a new value is saved", async () => {
+    const { save, calls } = controlledSave<string>();
+    const errors: boolean[] = [];
+    const a = new Autosave({
+      save,
+      delay: 10,
+      retryDelays: [100],
+      retryable: (e) => (e as Error).message !== "refused",
+      onError: (_e, first) => errors.push(first),
+    });
+    a.schedule("bad");
+    await vi.advanceTimersByTimeAsync(10);
+    calls[0].reject(new Error("refused"));
+    await tick();
+    expect(a.status).toBe("error");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(save).toHaveBeenCalledTimes(1);
+    await expect(a.flush()).resolves.toBe(false);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(a.dirty).toBe(true);
+    a.schedule("good");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(calls[1].value).toBe("good");
+    calls[1].resolve();
+    await tick();
+    expect(a.status).toBe("saved");
+    expect(errors).toEqual([true]);
+  });
+
+  it("drop() forgets the pending value; later values are still saved", async () => {
+    const { save, calls } = controlledSave<string>();
+    const changes: boolean[] = [];
+    const a: Autosave<string> = new Autosave<string>({ save, delay: 10, onChange: () => void changes.push(a.dirty) });
+    a.schedule("never");
+    a.drop();
+    expect(a.status).toBe("idle");
+    expect(a.dirty).toBe(false);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(save).not.toHaveBeenCalled();
+    a.schedule("later");
+    await vi.advanceTimersByTimeAsync(10);
+    expect(calls[0].value).toBe("later");
+    expect(a.inFlight).toBe(true);
+    calls[0].resolve();
+    await tick();
+    expect(a.inFlight).toBe(false);
+    // onChange fired when the save ended (dirty went back to false).
+    expect(changes.at(-1)).toBe(false);
+  });
+
   it("dispose() drops pending values and timers", async () => {
     const { save } = controlledSave<string>();
     const a = new Autosave({ save, delay: 50 });

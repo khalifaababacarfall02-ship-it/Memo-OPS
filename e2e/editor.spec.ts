@@ -13,18 +13,21 @@ test.use({ launchOptions: { env: { ...process.env, LANG: "C.UTF-8" } } });
 
 const fr = ui("fr");
 const en = ui("en");
-const AUTHOR = "ed-author@boxhero.test";
-const DECIDER = "ed-decider@boxhero.test";
-const READER = "ed-reader@boxhero.test";
-const OUTSIDER = "ed-outsider@boxhero.test";
-const ADMIN = "ed-admin@boxhero.test";
+// E2E_USER_PREFIX lets parallel runs on a shared stack use their own users.
+const P = process.env.E2E_USER_PREFIX ?? "ed-";
+const AUTHOR = `${P}author@boxhero.test`;
+const DECIDER = `${P}decider@boxhero.test`;
+const READER = `${P}reader@boxhero.test`;
+const OUTSIDER = `${P}outsider@boxhero.test`;
+const ADMIN = `${P}admin@boxhero.test`;
 const EMAILS = [AUTHOR, DECIDER, READER, OUTSIDER, ADMIN];
 
 const ids: Record<string, string> = {};
 
 test.beforeAll(async () => {
   for (const e of EMAILS) await cleanupUser(e);
-  ids.author = (await ensureUser(AUTHOR, { fullName: "Ed Author", teams: ["ops"], isAdmin: false })).id;
+  // A non-admin creates memos only in their teams (memos insert policy).
+  ids.author = (await ensureUser(AUTHOR, { fullName: "Ed Author", teams: ["ops", "growth", "crea", "mini"], isAdmin: false })).id;
   ids.decider = (await ensureUser(DECIDER, { fullName: "Ed Decider", teams: ["growth"], isAdmin: false })).id;
   ids.reader = (await ensureUser(READER, { fullName: "Ed Reader", teams: ["ops"], isAdmin: false })).id;
   ids.outsider = (await ensureUser(OUTSIDER, { fullName: "Ed Outsider", teams: ["finance"], isAdmin: false })).id;
@@ -87,15 +90,17 @@ test("a new memo is stored only after the first edit, then lives at /memos/<id>"
   await page.waitForTimeout(1000);
   expect(await countAuthored(ids.author)).toBe(0);
 
-  // Team pills switch an untouched memo in place.
+  // Team pills switch an untouched memo in place (in the author's teams); the pressed pill keeps the focus.
   await page.locator('.poles button[data-p="growth"]').click();
   await expect(page).toHaveURL(/\/memos\/new\?team=growth$/);
   await expect(page.locator("#hTitle")).toContainText("Growth");
+  await expect(page.locator('.poles button[data-p="growth"]')).toBeFocused();
   await page.locator('.poles button[data-p="ops"]').click();
   await expect(page).toHaveURL(/\/memos\/new\?team=ops$/);
+  await expect(page.locator('.poles button[data-p="ops"]')).toBeFocused();
   expect(await countAuthored(ids.author)).toBe(0);
 
-  // First keystrokes: one INSERT, URL replaced without remount (focus and caret kept).
+  // First keystrokes: one INSERT, then the editor moves to /memos/<id> (focus and caret kept).
   await page.locator("#fTitle").click();
   await page.keyboard.type("Corriger les retours", { delay: 15 });
   await expect(page).toHaveURL(memoUrl);
@@ -112,6 +117,8 @@ test("a new memo is stored only after the first edit, then lives at /memos/<id>"
 
   await page.reload();
   await expect(page.locator("#fTitle")).toHaveValue("Corriger les retours Amazon");
+  // Tab title: the memo's title (the root layout's template adds the app name).
+  await expect(page).toHaveTitle(/^Corriger les retours Amazon/);
   await page.context().close();
 });
 
@@ -295,7 +302,8 @@ test("submit needs a title and a decision maker, then the memo is to decide", as
   await expect(toast(page)).toHaveText(fr.needDecider);
   expect(await page.evaluate(() => document.activeElement?.id)).toBe("fDecider");
 
-  await page.locator("#fDecider").selectOption({ label: "Ed Decider" });
+  // By id: another "Ed Decider" (another run's prefix) would be listed as "Ed Decider · email".
+  await page.locator("#fDecider").selectOption(ids.decider);
   // Choosing the decider fills "À" when it is empty.
   await expect(page.locator('[data-m="0"]')).toHaveValue("Ed Decider");
   await page.locator('[data-q="0:0"]').fill("On réétiquette le stock ?");
@@ -419,11 +427,14 @@ test("a reader of the same team sees the memo read-only; an outsider gets 'not f
   const outsider = await as(browser, OUTSIDER, "/memos/new?team=finance");
   const res = await outsider.goto(`/memos/${id}`);
   expect(res?.status()).toBe(404);
-  await expect(outsider.locator(".nf-msg")).toHaveText(fr.notFound);
-  await expect(outsider.locator(".nf-back")).toHaveAttribute("href", "/");
+  // The shared 404 card (src/components/notfound/NotFoundCard.tsx).
+  await expect(outsider.locator(".solo-card .intro")).toHaveText(fr.notFound);
+  await expect(outsider.locator(".solo-card a.btn")).toHaveAttribute("href", "/");
+  // The tab title is the 404's, never the memo's.
+  await expect(outsider).not.toHaveTitle(/réétiquetage/);
   const bad = await outsider.goto("/memos/not-a-uuid");
   expect(bad?.status()).toBe(404);
-  await expect(outsider.locator(".nf-msg")).toHaveText(fr.notFound);
+  await expect(outsider.locator(".solo-card .intro")).toHaveText(fr.notFound);
   await outsider.context().close();
 });
 

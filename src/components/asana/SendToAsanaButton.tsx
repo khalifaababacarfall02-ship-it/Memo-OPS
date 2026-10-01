@@ -18,9 +18,14 @@ export interface SendToAsanaButtonProps {
   blockedReason?: string | null;
   /** Called after a successful send with the new/updated task gid. */
   onSent?: (taskGid: string) => void;
+  /**
+   * Runs first (e.g. the editor saves pending edits: the route reads the memo
+   * from the database). false: nothing is sent (the caller said why).
+   */
+  beforeSend?: () => Promise<boolean>;
 }
 
-export function SendToAsanaButton({ memoId, lang, taskGid, blockedReason, onSent }: SendToAsanaButtonProps) {
+export function SendToAsanaButton({ memoId, lang, taskGid, blockedReason, onSent, beforeSend }: SendToAsanaButtonProps) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [taskUrl, setTaskUrl] = useState<string | null>(null);
@@ -33,6 +38,10 @@ export function SendToAsanaButton({ memoId, lang, taskGid, blockedReason, onSent
       return;
     }
     setBusy(true);
+    if (beforeSend && !(await beforeSend().catch(() => false))) {
+      setBusy(false);
+      return;
+    }
     let outcome: SendOutcome;
     try {
       const res = await fetch("/api/asana", {
