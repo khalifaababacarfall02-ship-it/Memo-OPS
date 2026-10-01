@@ -179,7 +179,19 @@ to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
 | `/memos/[id]` | Editor / reader for one memo (permissions from the workflow rules). |
 | `/team` | Admins: assign teams and admin rights. Everyone: edit their display name. |
 | `/login`, `/auth/confirm`, `/auth/signout` | Auth. |
-| `POST /api/asana` | Phase 2: create/update the Asana task (server-side token). |
+| `POST /api/asana` | Phase 2: create/update the Asana task (server-side token), see below. |
+
+### `POST /api/asana` (phase 2)
+
+Body `{ "memoId": "<uuid>" }` (JSON only). Callers: the memo's author, decision maker, or an
+admin; the memo is loaded through RLS. Creates a task in `ASANA_PROJECT_GID` named
+`asanaTaskName()` with `asanaTaskNotes()` (+ a link back to the memo), assigned to the decision
+maker (`profiles.asana_user_gid`, else their email; retried unassigned if Asana refuses). If the memo
+already has `asana_task_gid`, that task is updated only when it belongs to the Memos project
+(anyone who can edit the memo could write any gid there); otherwise a new task is created.
+Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400, `unauthorized` 401,
+`forbidden` 403, `notFound` / `notConfigured` 404, `needDecider` 409, `saveError` / `serverError` 500,
+`asanaError` 502. Code: `src/lib/asana/{client,sync,send}.ts`.
 
 ## 5. UI conventions
 
@@ -209,5 +221,6 @@ to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
 - Browser code only ever sees `NEXT_PUBLIC_SUPABASE_URL` and the publishable key. All data
   access goes through RLS. No service-role key in the app.
 - The Asana token (`ASANA_ACCESS_TOKEN`) is read only in server code (`import "server-only"`).
+  `ASANA_API_BASE` (tests only) may point the client at a local mock: https, or http to localhost.
 - Redirect targets (`next`) are validated as same-origin paths.
 - Search input is escaped before it reaches PostgREST filters.
