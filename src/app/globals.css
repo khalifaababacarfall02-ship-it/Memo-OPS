@@ -169,6 +169,7 @@ textarea.qa{width:100%;min-height:44px;resize:none;overflow:hidden;border:1px so
 #exp .body .s ol,#exp .body .s ul{margin:4px 0 6px;padding-left:20px;font-family:var(--text);font-size:14.5px}
 #exp .body .ft{margin-top:22px;text-align:center;font-size:9.5px;color:#8A919C}
 @media print{
+  body{background:#fff}
   body>*:not(#exp){display:none!important}
   #exp{position:static;left:0}
   #exp .pg{break-after:page}

@@ -34,10 +34,11 @@ src/components/list/*         List view pieces
 src/components/asana/*        "Send to Asana" (phase 2)
 src/app/…                     Routes (see §4)
 supabase/migrations/*.sql     Schema, RLS, triggers
-supabase/tests/*.sql          pgTAP tests (RLS + workflow)
+supabase/tests/*.sql          pgTAP tests (RLS + workflow), `npm run db:test`
 supabase/seed.sql             Allowed domains / bootstrap admins (edit before first deploy)
-supabase/config.toml          Local Supabase config (auth redirect URLs, email template)
-supabase/templates/*.html     Magic-link email
+supabase/config.toml          Local Supabase config (auth redirect URLs, email templates)
+supabase/templates/*.html     magic_link.html + confirmation.html (a first sign-in uses "confirmation")
+scripts/db-test.sh            Runs migration + seed + pgTAP on a throwaway Postgres (no Docker)
 tests/unit, src/**/*.test.ts  Vitest unit tests
 e2e/*.spec.ts                 Playwright end-to-end tests (run against a local Supabase)
 ```
@@ -77,7 +78,8 @@ string value of `content`. The list searches it with `ilike '%…%'` (trigram in
 Helper functions live in schema `private` (not exposed by the API), are
 `security definer`, `stable`, with `set search_path = ''`:
 `private.is_admin()`, `private.is_team_member(team_key)`, `private.can_read_memo(uuid)`,
-`private.can_answer(uuid)`. Policies call `(select auth.uid())` / `(select private.is_admin())`.
+`private.can_answer(uuid)`, `private.my_teams()` (used by the memos read policy, evaluated once
+per statement). Policies call `(select auth.uid())` / `(select private.is_admin())`.
 
 - **profiles**: every signed-in user reads all profiles (to pick a decision maker).
   A user updates their own `full_name`; only admins change `is_admin`; `id`/`email` are immutable
@@ -90,7 +92,7 @@ Helper functions live in schema `private` (not exposed by the API), are
   `private.can_answer(memo_id)`: caller is the memo's decision maker (or an admin) and the memo is
   `to_decide`; `answered_by` must be `auth.uid()`.
 
-### Workflow guard (`memos_guard` trigger, BEFORE UPDATE)
+### Workflow guard (`memos_guard` trigger, BEFORE INSERT OR UPDATE)
 
 Mirrors `canTransition` / `canEditContent` in `src/lib/memo/model.ts`:
 
@@ -103,10 +105,33 @@ Mirrors `canTransition` / `canEditContent` in `src/lib/memo/model.ts`:
 | archive | draft/to_decide/decided → archived | author or decision maker |
 | restore | archived → draft | author |
 
-Admins may do any transition. `id`, `team`, `author_id`, `created_at` never change.
+On insert the trigger forces `author_id = auth.uid()`, `status = 'draft'`, and clears `decided_at`
+and `asana_task_gid`. The "needs a decision maker and a title" rule also applies when the title or
+decider change while `to_decide`. Admins may do any transition. `id`, `team`, `author_id`,
+`created_at` never change.
 `title`, `content`, `lang`, `decider_id` change only by the author (or an admin) while the memo is
 `draft` or `to_decide`. `updated_at` is set by the trigger. Service-role calls (no `auth.uid()`)
 bypass the guard.
+
+Other rules enforced in SQL: an answer's `question_id` must exist in `content.qs`; the last admin
+cannot lose admin rights; `profiles.email` mirrors `auth.users.email`; deleting a user who authored
+memos or answers is refused (offboard by removing teams/admin and banning), deleting a decision maker
+sets `decider_id = null` on their memos.
+
+**What the app must know.** RLS hides rows silently: an UPDATE/DELETE the caller may not make
+affects 0 rows without error, so always `.select()` after update/delete and treat an empty result
+as "not allowed". Someone who is not the author (decision maker changing status, Asana route) must
+send ONLY the columns they change: resending `title`/`content`/`lang`/`decider_id` raises
+"only the author can edit this memo". `memos.lang` has no default (always send it). Answers:
+`.upsert({ memo_id, question_id, answer }, { onConflict: "memo_id,question_id" })`; show only
+answers whose `question_id` is still in `content.qs`. Trigger errors reach the client as
+`{ code, message }` (42501 → HTTP 403, 23514 → 400, 23503 → 409); messages are listed at the top
+of the migration (e.g. `memo status change not allowed: draft -> decided`,
+`a memo to decide needs a decision maker and a title`).
+
+**Search.** `search_text` = lower(unaccent(title + every string value of `content` except `id` and
+`kind`)). Normalise the query the same way before `ilike '%q%'`: NFD, strip combining marks,
+œ→oe, æ→ae, ß→ss, lowercase; escape `%`, `_`, `\` and PostgREST's reserved characters.
 
 ### Sign-up restriction
 
@@ -120,14 +145,27 @@ before calling Supabase, to show a friendly message.
 
 Email magic link (passwordless), `@supabase/ssr` cookies.
 
-1. `/login` → server action `sendMagicLink` validates the email + domain, then
-   `signInWithOtp({ email, options: { emailRedirectTo: <site>/auth/confirm?next=<path> } })`.
-2. The email links to `/auth/confirm`. The route accepts both
-   `?token_hash=…&type=…` (custom template, works in any browser) and `?code=…` (PKCE default
-   template), creates the session cookie and redirects to `next` (same-origin paths only).
-3. `src/proxy.ts` refreshes the session on every request and redirects signed-out visitors to
-   `/login?next=…` (API routes get 401).
-4. `/auth/signout` (POST) clears the session.
+1. `/login` → server action `sendMagicLink` validates the email + domain, stores the wanted path
+   in the httpOnly cookie `bxh-next` (1 h), then
+   `signInWithOtp({ email, options: { emailRedirectTo: <request origin>/auth/confirm } })`.
+   `emailRedirectTo` has **no query string**: the email templates build
+   `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`, and a query in RedirectTo would
+   swallow the token (verified against GoTrue).
+2. `/auth/confirm` verifies `token_hash` with `verifyOtp({ type: "email", token_hash })` — works in
+   any browser, for new users (confirmation template) and existing ones (magic_link template),
+   including PKCE `pkce_…` hashes. It also accepts `?code=` (default template; same browser only).
+   It redirects to `?next` or the `bxh-next` cookie (same-origin paths only), else `/`.
+3. `src/proxy.ts` refreshes the session on every request. Signed-out: GET pages → 307
+   `/login?next=…`; other methods (Server Actions) → 401 text/plain; `/api/*` → 401 JSON. A stray
+   link that lands elsewhere with `?token_hash` (Supabase fell back to the Site URL because the
+   origin was not in the redirect allow list) is forwarded to `/auth/confirm`.
+4. `/login?error=auth` = link expired/used (show `ui.authError`), `/login?error=profile` = session
+   without a profile row (show `ui.profileMissing`). `/login?error=…` is never bounced (no loops).
+5. `/auth/signout` (POST) signs out this browser only.
+
+Supabase Auth hides the trigger's message when it rejects a domain: `signInWithOtp` returns a 500
+"Database error saving new user". The app checks `ALLOWED_EMAIL_DOMAINS` first and maps that 500
+to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
 
 `getViewer()` (`src/lib/auth/viewer.ts`, request-cached) returns
 `{ id, email, fullName, isAdmin, teams }` or `null`; `requireViewer()` redirects to `/login`.
@@ -156,8 +194,15 @@ Email magic link (passwordless), `@supabase/ssr` cookies.
 - New visual elements reuse the tokens (`--paper`, `--soft`, `--line`, `--muted`, `--acc`,
   `--acc-soft`, `--r-*`, `--ui`, `--text`) and live in `src/styles/*.css`.
 - Everything works in light and dark mode (the prototype's `prefers-color-scheme` tokens).
-- The PDF sheet (`#exp`) is rendered through a portal as a direct child of `<body>` (print CSS
-  relies on `body>*:not(#exp)`).
+- The PDF sheet (`#exp`) is rendered by `<ExportSheet>` through a portal as a direct child of
+  `<body>` (print CSS relies on `body>*:not(#exp)`). The editor gets it with `getExportSheet()` and
+  calls `downloadPdf(el, pdfFileName(memo))`. `pdf.ts` deliberately differs from the prototype on
+  two points (renders an in-flow copy; page-break avoidance limited to the memo body) because the
+  prototype's own html2pdf call produced a blank page.
+- Copy for Asana: `const h = asanaHTML(m); copyRich(h, htmlToText(h))` → toast `ui.copied`, or the
+  manual-copy modal on `"manual"`. Output is byte-identical to the prototype (golden tests).
+- Dark mode: the prototype's example boxes were unreadable in dark mode (light `--acc-soft` behind
+  light text); `src/styles/shell.css` tints them from the team colour. Light mode is unchanged.
 
 ## 6. Security rules
 

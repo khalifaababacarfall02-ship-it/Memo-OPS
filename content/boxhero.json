@@ -522,7 +522,13 @@
       "asanaDone": "Tâche Asana créée.",
       "asanaOpen": "Ouvrir dans Asana",
       "asanaSent": "déjà dans Asana",
-      "asanaError": "Asana n’a pas répondu : réessaie, ou copie le mémo."
+      "asanaError": "Asana n’a pas répondu : réessaie, ou copie le mémo.",
+      "profileMissing": "Ton compte n’est pas prêt : écris à Khalifa ou Mattéo.",
+      "openInApp": "Ouvrir le mémo dans l’app",
+      "decidedOn": "Décidé le {date}",
+      "noDecider": "à choisir",
+      "lastAdmin": "Il faut garder au moins un admin.",
+      "notAllowed": "Tu n’as pas le droit de faire ça."
     },
     "placeholders": {
       "memo": [
@@ -972,7 +978,13 @@
       "asanaDone": "Asana task created.",
       "asanaOpen": "Open in Asana",
       "asanaSent": "already in Asana",
-      "asanaError": "Asana didn’t respond: try again, or copy the memo."
+      "asanaError": "Asana didn’t respond: try again, or copy the memo.",
+      "profileMissing": "Your account is not set up yet: contact Khalifa or Mattéo.",
+      "openInApp": "Open the memo in the app",
+      "decidedOn": "Decided on {date}",
+      "noDecider": "to be chosen",
+      "lastAdmin": "Keep at least one admin.",
+      "notAllowed": "You’re not allowed to do that."
     },
     "placeholders": {
       "memo": [

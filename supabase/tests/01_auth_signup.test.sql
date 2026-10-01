@@ -190,23 +190,35 @@ begin
   return v_result;
 end $$;
 
-select is(
-  bxh_test.try_as('supabase_auth_admin',
-    $$ insert into auth.users (id, email) values ('a0000000-0000-4000-8000-0000000000aa', 'pgtap.gotrue@boxhero.test') $$),
-  'ok',
-  'inserting as supabase_auth_admin (the Auth server role) works'
-);
-select is(
-  bxh_test.try_as('supabase_auth_admin',
-    $$ insert into auth.users (id, email) values (gen_random_uuid(), 'pgtap.gotrue@example.com') $$),
-  '42501: email domain not allowed',
-  'and the domain check applies to it too'
-);
-select is(
-  (select email from public.profiles where id = 'a0000000-0000-4000-8000-0000000000aa'),
-  'pgtap.gotrue@boxhero.test',
-  'the profile is created for a user inserted by the Auth server'
-);
+-- Runs only where the test role may become supabase_auth_admin (superuser
+-- runners such as scripts/db-test.sh). On Supabase-like role setups the
+-- `postgres` role is not a member, so the three checks are skipped.
+create function bxh_test.auth_server_checks() returns setof text language plpgsql as $f$
+begin
+  if not exists (select 1 from pg_roles where rolname = current_user and rolsuper)
+     and not pg_has_role(current_user, 'supabase_auth_admin', 'MEMBER') then
+    return next skip('the test role cannot act as supabase_auth_admin here', 3);
+    return;
+  end if;
+  return next is(
+    bxh_test.try_as('supabase_auth_admin',
+      $$ insert into auth.users (id, email) values ('a0000000-0000-4000-8000-0000000000aa', 'pgtap.gotrue@boxhero.test') $$),
+    'ok',
+    'inserting as supabase_auth_admin (the Auth server role) works'
+  );
+  return next is(
+    bxh_test.try_as('supabase_auth_admin',
+      $$ insert into auth.users (id, email) values (gen_random_uuid(), 'pgtap.gotrue@example.com') $$),
+    '42501: email domain not allowed',
+    'and the domain check applies to it too'
+  );
+  return next is(
+    (select email from public.profiles where id = 'a0000000-0000-4000-8000-0000000000aa'),
+    'pgtap.gotrue@boxhero.test',
+    'the profile is created for a user inserted by the Auth server'
+  );
+end $f$;
+select * from bxh_test.auth_server_checks();
 
 -- ---------- user deletion ----------
 delete from auth.users where id = 'a0000000-0000-4000-8000-0000000000aa';

@@ -10,8 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:test": "bash scripts/db-test.sh",
-    "db:types": "supabase gen types typescript --local > src/lib/database.types.generated.ts"
+    "db:test": "bash scripts/db-test.sh --local",
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.generated.ts",
+    "db:test:url": "bash scripts/db-test.sh",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -5,3 +5,13 @@
 .acct form{margin:0;display:flex}
 .acct button,.acct-link{border:0;background:transparent;color:#fff;padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px;text-decoration:none;line-height:1.5}
 .acct button:hover,.acct-link:hover{background:rgba(255,255,255,.14)}
+
+/* Dark mode fix: the prototype keeps the light --acc-soft behind light text in
+   the example boxes and the guide's parts, which makes them unreadable. Tint
+   them from the team colour instead. Light mode is unchanged. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .ex,
+  :root:not([data-theme="light"]) .gparts div{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
+}
+:root[data-theme="dark"] .ex,
+:root[data-theme="dark"] .gparts div{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
