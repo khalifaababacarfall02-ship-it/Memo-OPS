@@ -86,7 +86,8 @@ per statement). Policies call `(select auth.uid())` / `(select private.is_admin(
   (guard trigger). No insert/delete through the API (created by the auth trigger, cascade on user delete).
 - **team_members**: everyone signed in reads; only admins insert/delete.
 - **memos**: read if admin, OR member of the memo's team, OR author, OR decision maker.
-  Insert: `author_id = auth.uid()` and `status = 'draft'`. Update: author, decision maker or admin
+  Insert: `author_id = auth.uid()`, `status = 'draft'`, and the memo's team is one of the author's
+  teams (admins: any team) — a decision maker may be anyone. Update: author, decision maker or admin
   (column/transition rules in the guard trigger below). Delete: author while `draft`, or admin.
 - **memo_answers**: read if the memo is readable. Insert/update/delete only through
   `private.can_answer(memo_id)`: caller is the memo's decision maker (or an admin) and the memo is
@@ -115,8 +116,9 @@ bypass the guard.
 
 Other rules enforced in SQL: an answer's `question_id` must exist in `content.qs`; the last admin
 cannot lose admin rights; `profiles.email` mirrors `auth.users.email`; deleting a user who authored
-memos or answers is refused (offboard by removing teams/admin and banning), deleting a decision maker
-sets `decider_id = null` on their memos.
+memos or answers is refused (offboard by removing teams/admin and banning); deleting a decision maker
+sets `decider_id = null` on their memos and sends any memo that was `to_decide` back to `draft`
+(migration `20261001090000`).
 
 **What the app must know.** RLS hides rows silently: an UPDATE/DELETE the caller may not make
 affects 0 rows without error, so always `.select()` after update/delete and treat an empty result
@@ -163,7 +165,10 @@ Email magic link (passwordless), `@supabase/ssr` cookies.
    link that lands elsewhere with `?token_hash` (Supabase fell back to the Site URL because the
    origin was not in the redirect allow list) is forwarded to `/auth/confirm`.
 4. `/login?error=auth` = link expired/used (show `ui.authError`), `/login?error=profile` = session
-   without a profile row (show `ui.profileMissing`). `/login?error=…` is never bounced (no loops).
+   without a profile row (show `ui.profileMissing` and a sign-out button). `/login?error=…` is never
+   bounced (no loops).
+   If Supabase Auth is unreachable, the proxy does not treat people as signed out: pages go on (their
+   own viewer check shows the error page) and `/api/*` answers 503 `{ error: "unavailable" }`.
 5. `/auth/signout` (POST) signs out this browser only.
 
 Supabase Auth hides the trigger's message when it rejects a domain: `signInWithOtp` returns a 500
@@ -177,7 +182,7 @@ to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
 
 | route | what |
 |---|---|
-| `/` | List view. Hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`. |
+| `/` | List view. Hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
 | `/memos/new?team=…[&example=1]` | Blank (or example) memo in the editor. Nothing is stored until the first edit; then the row is inserted and the URL becomes `/memos/<id>` (history.replaceState). |
 | `/memos/[id]` | Editor / reader for one memo (permissions from the workflow rules). |
 | `/team` | Admins: assign teams and admin rights. Everyone: edit their display name. |
@@ -191,7 +196,10 @@ admin; the memo is loaded through RLS. Creates a task in `ASANA_PROJECT_GID` nam
 `asanaTaskName()` with `asanaTaskNotes()` (+ a link back to the memo), assigned to the decision
 maker (`profiles.asana_user_gid`, else their email; retried unassigned if Asana refuses). If the memo
 already has `asana_task_gid`, that task is updated only when it belongs to the Memos project
-(anyone who can edit the memo could write any gid there); otherwise a new task is created.
+(anyone who can edit the memo could write any gid there — protecting the column itself would need a
+service-role key, which the app never uses); otherwise a new task is created. The new gid is saved
+with a compare-and-set on the value read before; if another send won the race, this request deletes
+the task it just created and returns the winner's.
 Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400, `unauthorized` 401,
 `forbidden` 403, `notFound` / `notConfigured` 404, `needDecider` 409, `saveError` / `serverError` 500,
 `asanaError` 502. Code: `src/lib/asana/{client,sync,send}.ts`.
@@ -216,6 +224,13 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   prototype's own html2pdf call produced a blank page.
 - Copy for Asana: `const h = asanaHTML(m); copyRich(h, htmlToText(h))` → toast `ui.copied`, or the
   manual-copy modal on `"manual"`. Output is byte-identical to the prototype (golden tests).
+- Fonts: Schibsted Grotesk through `next/font/google`; Newsreader self-hosted in `src/app/fonts/`
+  exactly as the prototype loaded it (weights 400–500 + italic 400, optical sizes), so bold in the
+  examples is the browser's bold of 500 and lines wrap as in the design.
+- Modals (`src/components/shell/Modal.tsx`) render in `<body>` like the prototype's `#gmodal`/`#modal`
+  and keep Tab inside. On phones (≤600px) the account pill leaves the hero and sits above the footer,
+  so the hero keeps the prototype's brand row.
+- Single-card pages (login, 404, error) share `src/components/notfound/*` (styles via `SoloStyles`).
 - Dark mode: the prototype's example boxes were unreadable in dark mode (light `--acc-soft` behind
   light text); `src/styles/shell.css` tints them from the team colour. Light mode is unchanged.
 
@@ -225,5 +240,7 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   access goes through RLS. No service-role key in the app.
 - The Asana token (`ASANA_ACCESS_TOKEN`) is read only in server code (`import "server-only"`).
   `ASANA_API_BASE` (tests only) may point the client at a local mock: https, or http to localhost.
+- Security headers on every route (`next.config.ts`): `frame-ancestors 'none'` / `X-Frame-Options`
+  (the decision buttons cannot be clickjacked), nosniff, referrer policy, HSTS, permissions policy.
 - Redirect targets (`next`) are validated as same-origin paths.
 - Search input is escaped before it reaches PostgREST filters.
