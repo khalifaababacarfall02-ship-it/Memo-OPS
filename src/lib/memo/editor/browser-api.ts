@@ -9,7 +9,8 @@ const get = (): MemoApi => (api ??= supabaseMemoApi(createClient()));
 export const browserMemoApi: MemoApi = {
   insert: (...a) => get().insert(...a),
   update: (...a) => get().update(...a),
-  upsertAnswers: (...a) => get().upsertAnswers(...a),
+  fetch: (...a) => get().fetch(...a),
+  upsertAnswer: (...a) => get().upsertAnswer(...a),
   setStatus: (...a) => get().setStatus(...a),
   remove: (...a) => get().remove(...a),
 };

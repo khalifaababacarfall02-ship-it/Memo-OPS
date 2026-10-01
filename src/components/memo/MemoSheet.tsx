@@ -3,8 +3,9 @@
 // renderNeeds() and renderQs(): same elements, classes, ids, data-attributes,
 // inline styles and placeholders. Read-only viewers get the same sheet with
 // readOnly inputs, disabled checkboxes and no add/remove buttons.
-import { type Lang, type Team, content as appContent, doc, esc, md, memoSections, metaFields, miniSections, placeholders, ui } from "@/lib/content";
+import { type Lang, type Team, content as appContent, doc, esc, fmt, md, memoSections, metaFields, miniSections, placeholders, ui } from "@/lib/content";
 import * as E from "@/lib/memo/editor/edit";
+import { MAX_ANSWER, MAX_TITLE } from "@/lib/memo/editor/session";
 import type { MemoContent } from "@/lib/memo/model";
 import { GrowArea } from "./GrowArea";
 
@@ -42,6 +43,10 @@ export function MemoSheet(p: MemoSheetProps) {
   const T = doc(lang);
   const ph = placeholders(lang, team);
   const ro = !editable;
+  // Writing prompts are for the author: a read-only sheet shows no placeholders.
+  const hint = (s: string) => (ro ? undefined : s);
+  // "Supprimer : <the row's text>" so each × button says which row it removes.
+  const delLabel = (text: string, fallback: string) => fmt(u.delRow, { what: text.trim() || fallback });
   const edit = p.onContent;
   const val = (f: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => f(e.target.value);
 
@@ -52,7 +57,8 @@ export function MemoSheet(p: MemoSheetProps) {
         <input
           id="fTitle"
           data-f="title"
-          placeholder={titlePlaceholder(lang, team)}
+          placeholder={hint(titlePlaceholder(lang, team))}
+          maxLength={MAX_TITLE}
           value={p.title}
           readOnly={ro}
           onChange={val(p.onTitle)}
@@ -65,7 +71,7 @@ export function MemoSheet(p: MemoSheetProps) {
             <input
               id={`fMeta${i}`}
               data-m={i}
-              placeholder={f.placeholder}
+              placeholder={hint(f.placeholder)}
               value={c.meta[i]}
               readOnly={ro}
               onChange={val((v) => edit((x) => E.setMeta(x, i, v)))}
@@ -77,7 +83,7 @@ export function MemoSheet(p: MemoSheetProps) {
           <input
             id="fAuthor"
             data-f="author"
-            placeholder={u.author}
+            placeholder={hint(u.author)}
             value={c.author}
             readOnly={ro}
             onChange={val((v) => edit((x) => E.setAuthor(x, v)))}
@@ -92,7 +98,7 @@ export function MemoSheet(p: MemoSheetProps) {
       className="field"
       data-s={i}
       style={style}
-      placeholder={placeholder}
+      placeholder={hint(placeholder)}
       aria-label={label}
       value={c.s[i]}
       readOnly={ro}
@@ -117,7 +123,7 @@ export function MemoSheet(p: MemoSheetProps) {
                   className="field"
                   data-f="works"
                   style={{ minHeight: 60 }}
-                  placeholder={u.worksPh}
+                  placeholder={hint(u.worksPh)}
                   aria-label={u.worksIf}
                   value={c.works}
                   readOnly={ro}
@@ -152,7 +158,7 @@ export function MemoSheet(p: MemoSheetProps) {
                     <input
                       data-a={`${j}:0`}
                       value={a.action}
-                      placeholder={u.actPh}
+                      placeholder={hint(u.actPh)}
                       aria-label={u.actPh}
                       readOnly={ro}
                       onChange={val((v) => edit((x) => E.setAct(x, a.id, "action", v)))}
@@ -160,7 +166,7 @@ export function MemoSheet(p: MemoSheetProps) {
                     <input
                       data-a={`${j}:1`}
                       value={a.owner}
-                      placeholder={u.ownPh}
+                      placeholder={hint(u.ownPh)}
                       aria-label={u.ownPh}
                       readOnly={ro}
                       onChange={val((v) => edit((x) => E.setAct(x, a.id, "owner", v)))}
@@ -168,7 +174,7 @@ export function MemoSheet(p: MemoSheetProps) {
                     <input
                       data-a={`${j}:2`}
                       value={a.due}
-                      placeholder={u.datePh}
+                      placeholder={hint(u.datePh)}
                       aria-label={u.datePh}
                       readOnly={ro}
                       onChange={val((v) => edit((x) => E.setAct(x, a.id, "due", v)))}
@@ -178,7 +184,7 @@ export function MemoSheet(p: MemoSheetProps) {
                         type="button"
                         className="del"
                         data-da={j}
-                        aria-label={u.del}
+                        aria-label={delLabel(a.action, u.actPh)}
                         onClick={() => edit((x) => E.removeAct(x, a.id))}
                       >
                         ×
@@ -211,7 +217,7 @@ export function MemoSheet(p: MemoSheetProps) {
                       type="text"
                       data-nt={j}
                       value={n.text}
-                      placeholder={u.needPh}
+                      placeholder={hint(u.needPh)}
                       aria-label={u.needPh}
                       readOnly={ro}
                       onChange={val((v) => edit((x) => E.setNeedText(x, n.id, v)))}
@@ -221,7 +227,7 @@ export function MemoSheet(p: MemoSheetProps) {
                         type="button"
                         className="del"
                         data-dn={j}
-                        aria-label={u.del}
+                        aria-label={delLabel(n.text, u.needPh)}
                         onClick={() => edit((x) => E.removeNeed(x, n.id))}
                       >
                         ×
@@ -240,7 +246,7 @@ export function MemoSheet(p: MemoSheetProps) {
                 className="field"
                 data-f="res"
                 style={{ minHeight: 56 }}
-                placeholder={u.resPh}
+                placeholder={hint(u.resPh)}
                 aria-label={u.res}
                 value={c.res}
                 readOnly={ro}
@@ -256,7 +262,7 @@ export function MemoSheet(p: MemoSheetProps) {
                     <input
                       data-q={`${j}:0`}
                       value={q.q}
-                      placeholder={u.qPh}
+                      placeholder={hint(u.qPh)}
                       aria-label={u.qPh}
                       readOnly={ro}
                       onChange={val((v) => edit((x) => E.setQuestion(x, q.id, v)))}
@@ -267,6 +273,7 @@ export function MemoSheet(p: MemoSheetProps) {
                       data-qid={q.id}
                       placeholder={p.answerPlaceholder}
                       aria-label={u.aPh}
+                      maxLength={MAX_ANSWER}
                       value={p.answers[q.id] ?? ""}
                       readOnly={!p.answerable}
                       onChange={val((v) => p.onAnswer(q.id, v))}
@@ -276,7 +283,7 @@ export function MemoSheet(p: MemoSheetProps) {
                         type="button"
                         className="del"
                         data-dq={j}
-                        aria-label={u.del}
+                        aria-label={delLabel(q.q, u.qPh)}
                         onClick={() => edit((x) => E.removeQuestion(x, q.id))}
                       >
                         ×

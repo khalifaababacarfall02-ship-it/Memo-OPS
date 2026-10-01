@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fmtDate as listFmtDate } from "@/components/list/format";
 import { blankContent } from "@/lib/memo/model";
 import { fmtDate, fmtDay } from "./dates";
 import * as E from "./edit";
@@ -85,12 +86,15 @@ describe("people and dates", () => {
     expect(nameOf(people, "nope")).toBeNull();
   });
 
-  it("formats like the prototype's fmtDate()", () => {
+  it("formats like the prototype's fmtDate(), in BoxHero's time zone like the list", () => {
     const iso = "2026-09-29T07:00:00Z";
-    const fr = new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
-    expect(fmtDate(iso, "fr")).toBe(fr);
+    expect(fmtDate(iso, "fr")).toBe("29 septembre à 09:00");
+    expect(fmtDate(iso, "fr")).toBe(listFmtDate("fr", iso));
+    expect(fmtDate(iso, "en")).toBe(listFmtDate("en", iso));
     expect(fmtDate("not a date", "fr")).toBe("");
     expect(fmtDate(null, "en")).toBe("");
-    expect(fmtDay(iso, "en")).toMatch(/29 September 2026/);
+    expect(fmtDay(iso, "en")).toBe("29 September 2026");
+    // 23:30 UTC on 30 September is already 1 October in Paris.
+    expect(fmtDay("2026-09-30T23:30:00Z", "fr")).toBe("1 octobre 2026");
   });
 });

@@ -4,7 +4,9 @@
 // - the designed PDF sheet rendered into #exp (exportSheetHTML, pdfFileName),
 // - phase 2 "Send to Asana": task name + html_notes (asanaTaskName, asanaTaskNotes).
 // The first four reproduce the prototype byte for byte (golden tests in
-// export.test.ts against tests/fixtures/prototype-exports.json).
+// export.test.ts against tests/fixtures/prototype-exports.json), except that
+// line breaks inside a decision maker's answer become <br> (the prototype
+// lost them: see asanaHTML).
 import {
   type Lang,
   type Team,
@@ -96,9 +98,12 @@ export function asanaHTML(m: ExportMemo): string {
           .join("")}</ul>`;
       if (c.res) h += `<p><strong>${u.res} :</strong> ${esc(c.res)}</p>`;
     }
+    // Deliberate difference from the prototype: a multi-line answer keeps its
+    // line breaks (<br>); the prototype's esc() left raw newlines, which HTML
+    // collapses into spaces. Single-line answers are byte-identical.
     if (i === 4)
       h += `<ol>${filledQs(c)
-        .map((q) => `<li>${esc(q.q)}<br>→ ${esc(answerOf(m, q.id))}</li>`)
+        .map((q) => `<li>${esc(q.q)}<br>→ ${br(answerOf(m, q.id))}</li>`)
         .join("")}</ol>`;
   });
   return h;
@@ -174,9 +179,10 @@ export function exportSheetHTML(m: ExportMemo, opts: { coverSrc?: string } = {})
             .join("")}</ul>`;
         if (c.res) inner += `<p><b>${u.res} :</b> ${esc(c.res)}</p>`;
       }
+      // Multi-line answers keep their line breaks (see asanaHTML).
       if (i === 4)
         inner += `<ol>${filledQs(c)
-          .map((q) => `<li>${esc(q.q)}<br>→ ${esc(answerOf(m, q.id))}</li>`)
+          .map((q) => `<li>${esc(q.q)}<br>→ ${br(answerOf(m, q.id))}</li>`)
           .join("")}</ol>`;
     }
     body += `<div class="s"><h2>${esc(s.label)}</h2><p class="q">${esc(s.question)}</p>${inner}</div>`;

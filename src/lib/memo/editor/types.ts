@@ -24,4 +24,10 @@ export interface EditorViewer {
   email: string;
   fullName: string;
   isAdmin: boolean;
+  /** Teams the viewer belongs to: a non-admin creates memos only in these. */
+  teams: Team[];
 }
+
+/** Whether `viewer` may create a memo in `team` (mirrors the memos insert policy). */
+export const canCreateIn = (viewer: { isAdmin: boolean; teams: readonly Team[] }, team: Team): boolean =>
+  viewer.isAdmin || viewer.teams.includes(team);
