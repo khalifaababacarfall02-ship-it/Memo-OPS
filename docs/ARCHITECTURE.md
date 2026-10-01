@@ -183,11 +183,26 @@ to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
 | route | what |
 |---|---|
 | `/` | List view. Hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
-| `/memos/new?team=…[&example=1]` | Blank (or example) memo in the editor. Nothing is stored until the first edit; then the row is inserted and the URL becomes `/memos/<id>` (history.replaceState). |
+| `/memos/new?team=…[&example=1]` | Blank (or example) memo in the editor. Nothing is stored until the first edit; then the row is inserted and the editor moves to `/memos/<id>` (`router.replace`, handing over its save session so nothing typed meanwhile is lost). A non-member is sent to their first team; someone with no team sees `ui.noTeam`. |
 | `/memos/[id]` | Editor / reader for one memo (permissions from the workflow rules). |
 | `/team` | Admins: assign teams and admin rights. Everyone: edit their display name. |
 | `/login`, `/auth/confirm`, `/auth/signout` | Auth. |
 | `POST /api/asana` | Phase 2: create/update the Asana task (server-side token), see below. |
+
+### How the editor saves (`src/lib/memo/editor/`)
+
+- Autosave ~600 ms after typing, flushed before status changes, sends and page hide.
+- Optimistic concurrency: updates match `updated_at` as last loaded. On a mismatch the stored row is
+  read back and merged field by field with the local changes (`merge.ts`); if both changed the same
+  field, the local text wins and `ui.editedElsewhere` is shown once. A tab that becomes visible with
+  nothing pending refreshes.
+- Errors are classified (`errors.ts`): only network/5xx failures are retried; locks, too-long values,
+  missing decision maker, expired session and permission errors get their own message and are not
+  retried with the same payload.
+- Unsaved text is kept per user and memo in localStorage (`drafts.ts`) and restored after a reload or
+  a new sign-in; a memo that became locked drops local edits.
+- Answers are saved one question at a time; an answer to a question the author removed is dropped
+  with `ui.answerDropped`.
 
 ### `POST /api/asana` (phase 2)
 

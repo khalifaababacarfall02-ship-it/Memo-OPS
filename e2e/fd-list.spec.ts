@@ -116,8 +116,10 @@ test("list status styles stay on the list (the editor's badge after a client-sid
   await expect(page).toHaveURL(`/memos/${ids.archived}`);
   const badge = page.locator("#memoStatus");
   await expect(badge).toBeVisible();
-  await expect(badge).toHaveCSS("border-top-style", "none");
-  await expect(badge).toHaveCSS("border-top-width", "0px");
+  // The editor badge now uses the list's palette on purpose (dashed 1 px for archived);
+  // what must not leak is the list's own row styling (3 px).
+  await expect(badge).toHaveCSS("border-top-style", "dashed");
+  await expect(badge).toHaveCSS("border-top-width", "1px");
 });
 
 test("long lists: 200 rows, then 'Show more' adds the next ones, filters kept", async ({ page }) => {

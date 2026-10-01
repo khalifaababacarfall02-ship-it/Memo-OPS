@@ -55,7 +55,7 @@ test("signed out: the list sends you to /login, and back after signing in", asyn
   await page.goto(link);
   // Lands where the visitor was going, signed in.
   await expect(page).toHaveURL("/?team=sav&status=decided");
-  await expect(page.locator(".acct button")).toHaveText("Se déconnecter");
+  await expect(page.locator(".hero .acct button")).toHaveText("Se déconnecter");
   await expect(page.locator(".lst-tabs a[aria-current=page]")).toHaveText("Décidé");
 
   // Signed in, /login sends you on.
@@ -117,7 +117,7 @@ test("FR/EN switch on the login page", async ({ page }) => {
 test("sign out from the account pill returns to /login", async ({ page }) => {
   await signIn(page, USER);
   await expect(page).toHaveURL("/");
-  await page.locator(".acct button").click();
+  await page.locator(".hero .acct button").click();
   await expect(page).toHaveURL("/login");
   await page.goto("/");
   await expect(page).toHaveURL("/login");

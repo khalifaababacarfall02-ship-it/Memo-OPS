@@ -316,7 +316,7 @@ test("unknown pages: the app's 404 with the way back", async ({ page }) => {
   // Not about a memo: any URL.
   await expect(page.locator(".solo-card .intro")).toHaveText("Cette page n’existe pas.");
   await expect(page).toHaveTitle(/^Cette page n’existe pas( · Mémo BoxHero)?$/);
-  await expect(page.locator(".acct button")).toHaveText("Se déconnecter");
+  await expect(page.locator(".hero .acct button")).toHaveText("Se déconnecter");
   await page.locator(".lang button[data-l=en]").click();
   await expect(page.locator(".solo-card .intro")).toHaveText("This page doesn’t exist.");
   await page.getByRole("link", { name: "Back to memos" }).click();
