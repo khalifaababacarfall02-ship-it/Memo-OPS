@@ -31,15 +31,18 @@ export function ListRail({
   noTeam,
 }: {
   lang: Lang;
-  /** Team of the memo the "New memo" and example buttons open. */
-  newTeam: Team;
+  /**
+   * Team of the memo the "New memo" and example buttons open: one the visitor
+   * may write in. Null: they may write in none, the buttons are not shown.
+   */
+  newTeam: Team | null;
   forMe: RailMemo[];
   mine: RailMemo[];
   /** The visitor is in no team (and not an admin): say why the list is short. */
   noTeam: boolean;
 }) {
   const u = ui(lang);
-  const newHref = `/memos/new?team=${newTeam}`;
+  const newHref = newTeam && `/memos/new?team=${newTeam}`;
   return (
     <aside className="rail">
       {noTeam && (
@@ -47,20 +50,22 @@ export function ListRail({
           <p className="lst-note">{u.noTeam}</p>
         </div>
       )}
-      <div className="panel">
-        <Link className="btn acc" href={newHref} id="bNew">
-          <span className="l">
-            <PlusIcon />
-            {u.nw}
-          </span>
-        </Link>
-        <Link className="btn ghost" href={`${newHref}&example=1`} id="bExample">
-          <span className="l">
-            <EyeIcon />
-            {u.example}
-          </span>
-        </Link>
-      </div>
+      {newHref && (
+        <div className="panel">
+          <Link className="btn acc" href={newHref} id="bNew">
+            <span className="l">
+              <PlusIcon />
+              {u.nw}
+            </span>
+          </Link>
+          <Link className="btn ghost" href={`${newHref}&example=1`} id="bExample">
+            <span className="l">
+              <EyeIcon />
+              {u.example}
+            </span>
+          </Link>
+        </div>
+      )}
       <div className="panel" id="forMe">
         <h3>{u.forMe}</h3>
         <RailList lang={lang} memos={forMe} none={u.forMeNone} />

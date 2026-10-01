@@ -1,7 +1,7 @@
 // Sign-in page (/login) and the whole magic-link round trip through the local
 // mail sink (MAIL_API_URL, see the stack README: GET /messages/latest).
 import { expect, test } from "@playwright/test";
-import { cleanupUser, ensureUser, signIn } from "./support";
+import { admin, cleanupUser, ensureUser, signIn } from "./support";
 
 const mailApi = process.env.MAIL_API_URL ?? "http://localhost:2501";
 const USER = "ls-login@boxhero.test";
@@ -121,6 +121,42 @@ test("sign out from the account pill returns to /login", async ({ page }) => {
   await expect(page).toHaveURL("/login");
   await page.goto("/");
   await expect(page).toHaveURL("/login");
+});
+
+test("a session without a profile ends on /login?error=profile, with a way to sign out", async ({ page }) => {
+  const email = "fd-noprofile@boxhero.test";
+  const { id } = await ensureUser(email, { teams: [] });
+  try {
+    await signIn(page, email);
+    await expect(page).toHaveURL("/");
+    // The profile row disappears (it should never happen, but then nothing works).
+    const { error } = await admin().from("profiles").delete().eq("id", id);
+    expect(error).toBeNull();
+    await page.goto("/team");
+    await expect(page).toHaveURL("/login?error=profile");
+    await expect(page.locator("#login-msg")).toHaveText("Ton compte n’est pas prêt : écris à Khalifa ou Mattéo.");
+    const signOut = page.getByRole("button", { name: "Se déconnecter" });
+    await expect(signOut).toBeVisible();
+    await signOut.click();
+    await expect(page).toHaveURL("/login");
+    await expect(page.getByRole("button", { name: "Se déconnecter" })).toHaveCount(0);
+    // Signed out for real: the list sends you to /login again.
+    await page.goto("/team");
+    await expect(page).toHaveURL(`/login?next=${encodeURIComponent("/team")}`);
+  } finally {
+    await admin().auth.admin.deleteUser(id);
+  }
+});
+
+test("the login page has its own title, and no sign-out button without the profile error", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page).toHaveTitle(/^Connexion( · Mémo BoxHero)?$/);
+  await expect(page.getByRole("button", { name: "Se déconnecter" })).toHaveCount(0);
+  await page.goto("/login?error=auth");
+  await expect(page.getByRole("button", { name: "Se déconnecter" })).toHaveCount(0);
+  await page.locator(".lang button[data-l=en]").click();
+  await expect(page).toHaveTitle(/^Sign in( · Mémo BoxHero)?$/);
+  await page.locator(".lang button[data-l=fr]").click();
 });
 
 test("phone width: no horizontal scroll", async ({ page }) => {

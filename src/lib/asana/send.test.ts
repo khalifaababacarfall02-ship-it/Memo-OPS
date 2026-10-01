@@ -55,8 +55,11 @@ function baseRow(): Row {
 interface Db {
   row: Row | null;
   loadError?: { code: string; message: string };
+  /** Forces the update's answer (RLS refusal, error) instead of the compare-and-set. */
   updateResult?: { data: unknown[] | null; error: { code: string; message: string } | null };
-  updates: { patch: Record<string, unknown>; id: unknown; select: string }[];
+  /** Runs just before the update: another send saving its task first. */
+  beforeSave?: () => void;
+  updates: { patch: Record<string, unknown>; id: unknown; expected: unknown; select: string }[];
   selects: string[];
 }
 let db: Db;
@@ -75,7 +78,7 @@ function fakeSupabase() {
                 maybeSingle: async () =>
                   db.loadError
                     ? { data: null, error: db.loadError }
-                    : { data: db.row && db.row.id === value ? db.row : null, error: null },
+                    : { data: db.row && db.row.id === value ? { ...db.row } : null, error: null },
               };
             },
           };
@@ -84,11 +87,24 @@ function fakeSupabase() {
           return {
             eq(col: string, id: unknown) {
               expect(col).toBe("id");
+              // The compare-and-set on asana_task_gid: .is(null) or .eq(value).
+              const cas = (column: string, expected: unknown) => {
+                expect(column).toBe("asana_task_gid");
+                return {
+                  select: async (select: string) => {
+                    db.updates.push({ patch, id, expected, select });
+                    db.beforeSave?.();
+                    if (db.updateResult) return db.updateResult;
+                    const row = db.row;
+                    if (!row || row.id !== id || row.asana_task_gid !== expected) return { data: [], error: null };
+                    Object.assign(row, patch);
+                    return { data: [{ id }], error: null };
+                  },
+                };
+              };
               return {
-                select: async (select: string) => {
-                  db.updates.push({ patch, id, select });
-                  return db.updateResult ?? { data: [{ id }], error: null };
-                },
+                is: (column: string, value: null) => cas(column, value),
+                eq: (column: string, value: unknown) => cas(column, value),
               };
             },
           };
@@ -104,6 +120,7 @@ let asanaCalls: { op: string; gid?: string; fields: TaskFields & { projects?: st
 let nextGid: number;
 let failWith: AsanaError | null;
 let rejectAssignee: boolean;
+let failDelete: boolean;
 
 const fakeAsana: AsanaApi = {
   async getTask(gid) {
@@ -126,6 +143,11 @@ const fakeAsana: AsanaApi = {
     if (failWith) throw failWith;
     if (rejectAssignee && fields.assignee) throw new AsanaError("http", 400, ["assignee: Not a recognized ID: <email>"]);
     return { gid, permalink_url: `https://app.asana.com/0/${PROJECT}/${gid}` };
+  },
+  async deleteTask(gid) {
+    asanaCalls.push({ op: "delete", gid, fields: {} });
+    if (failDelete) throw new AsanaError("network");
+    tasks.delete(gid);
   },
 };
 
@@ -163,6 +185,7 @@ beforeEach(() => {
   nextGid = 1200;
   failWith = null;
   rejectAssignee = false;
+  failDelete = false;
   viewer = { id: "author", isAdmin: false };
   enabled = true;
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -238,7 +261,7 @@ describe("POST /api/asana: create and update", () => {
     ]);
     expect(asanaCalls[0].fields.html_notes).toContain("Oui");
     // Only asana_task_gid is written (the guard refuses anything else from non-authors).
-    expect(db.updates).toEqual([{ patch: { asana_task_gid: "1200" }, id: MEMO_ID, select: "id" }]);
+    expect(db.updates).toEqual([{ patch: { asana_task_gid: "1200" }, id: MEMO_ID, expected: null, select: "id" }]);
   });
 
   it("assigns to the decision maker's Asana user gid when set", async () => {
@@ -279,7 +302,9 @@ describe("POST /api/asana: create and update", () => {
     const body = await (await post({ memoId: MEMO_ID })).json();
     expect(body).toMatchObject({ gid: "1200", updated: false });
     expect(asanaCalls.map((c) => c.op)).toEqual(["get", "create"]);
-    expect(db.updates[0].patch).toEqual({ asana_task_gid: "1200" });
+    // Saved only over the value that was read.
+    expect(db.updates).toEqual([{ patch: { asana_task_gid: "1200" }, id: MEMO_ID, expected: "666", select: "id" }]);
+    expect(db.row?.asana_task_gid).toBe("1200");
   });
 
   it("creates a new task when the stored one was deleted", async () => {
@@ -320,16 +345,94 @@ describe("POST /api/asana: create and update", () => {
     await expectError(await post({ memoId: MEMO_ID }), 502, "asanaError");
   });
 
-  it("500 saveError when RLS refuses to store the gid", async () => {
+  it("500 saveError when RLS refuses to store the gid; the unlinked task is removed", async () => {
     db.updateResult = { data: [], error: null };
     await expectError(await post({ memoId: MEMO_ID }), 500, "saveError");
+    expect(asanaCalls.map((c) => [c.op, c.gid ?? null])).toEqual([
+      ["create", null],
+      ["delete", "1200"],
+    ]);
+    asanaCalls = [];
     db.updateResult = { data: null, error: { code: "42501", message: "only the author can edit this memo" } };
     await expectError(await post({ memoId: MEMO_ID }), 500, "saveError");
+    expect(asanaCalls.map((c) => [c.op, c.gid ?? null])).toEqual([
+      ["create", null],
+      ["delete", "1201"],
+    ]);
+    expect(tasks.size).toBe(0);
   });
 
   it("reads the memo with its answers and decision maker through the viewer's client", async () => {
     await post({ memoId: MEMO_ID });
     expect(db.selects[0]).toContain("memo_answers(question_id, answer)");
     expect(db.selects[0]).toContain("decider:profiles!memos_decider_id_fkey(email, asana_user_gid)");
+  });
+});
+
+describe("POST /api/asana: two sends at the same time", () => {
+  it("the second to save removes its own task and answers with the first one's", async () => {
+    // Another send created task 1100 and saved it after we read the memo.
+    tasks.set("1100", { project: PROJECT });
+    db.beforeSave = () => {
+      db.row!.asana_task_gid = "1100";
+    };
+    const res = await post({ memoId: MEMO_ID });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      gid: "1100",
+      url: `https://app.asana.com/0/${PROJECT}/1100`,
+      assigned: true,
+      updated: false,
+    });
+    expect(asanaCalls.map((c) => [c.op, c.gid ?? null])).toEqual([
+      ["create", null],
+      ["delete", "1200"],
+    ]);
+    // One task left, the one linked to the memo.
+    expect([...tasks.keys()]).toEqual(["1100"]);
+    expect(db.row?.asana_task_gid).toBe("1100");
+    // The compare-and-set expected the gid we read (none), then the memo was read again.
+    expect(db.updates.map((u) => u.expected)).toEqual([null]);
+    expect(db.selects.at(-1)).toBe("asana_task_gid");
+  });
+
+  it("the same when the memo already pointed to a task outside the project", async () => {
+    tasks.set("666", { project: "someone-elses-project" });
+    tasks.set("1100", { project: PROJECT });
+    db.row = { ...baseRow(), asana_task_gid: "666" };
+    db.beforeSave = () => {
+      db.row!.asana_task_gid = "1100";
+    };
+    const body = await (await post({ memoId: MEMO_ID })).json();
+    expect(body).toMatchObject({ gid: "1100", updated: false });
+    expect(db.updates.map((u) => u.expected)).toEqual(["666"]);
+    expect(tasks.has("1200")).toBe(false);
+    expect(tasks.has("666")).toBe(true);
+  });
+
+  it("still answers with the linked task when removing ours fails (logged, best effort)", async () => {
+    failDelete = true;
+    db.beforeSave = () => {
+      db.row!.asana_task_gid = "1100";
+    };
+    const body = await (await post({ memoId: MEMO_ID })).json();
+    expect(body).toMatchObject({ gid: "1100" });
+    expect(console.error).toHaveBeenCalledWith("[asana] discard failed", expect.objectContaining({ kind: "network" }));
+  });
+
+  it("a send whose memo disappeared meanwhile is a saveError", async () => {
+    db.beforeSave = () => {
+      db.row = null;
+    };
+    await expectError(await post({ memoId: MEMO_ID }), 500, "saveError");
+    expect(asanaCalls.map((c) => c.op)).toEqual(["create", "delete"]);
+  });
+
+  it("sends one after the other: the second one updates the first one's task", async () => {
+    expect(await (await post({ memoId: MEMO_ID })).json()).toMatchObject({ gid: "1200", updated: false });
+    viewer = { id: "decider", isAdmin: false };
+    expect(await (await post({ memoId: MEMO_ID })).json()).toMatchObject({ gid: "1200", updated: true });
+    expect(asanaCalls.map((c) => c.op)).toEqual(["create", "get", "update"]);
+    expect([...tasks.keys()]).toEqual(["1200"]);
   });
 });

@@ -3,15 +3,18 @@ import "server-only";
 // Reads through RLS with the visitor's session: what comes back is exactly
 // what they may see (their teams' memos, the ones they write or decide, or
 // everything for an admin).
-import type { ListFilters } from "@/components/list/params";
+import { LIST_PAGE, type ListFilters } from "@/components/list/params";
 import type { Viewer } from "@/lib/auth/viewer";
 import type { Lang, Team } from "@/lib/content";
 import type { MemoStatus } from "@/lib/memo/model";
 import { searchPattern } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
 
-/** Most rows the list shows (the count still says how many match). */
-export const LIST_LIMIT = 200;
+/**
+ * Rows per request: Supabase's API returns at most 1000 rows (max_rows), so a
+ * longer list is read in several ranges.
+ */
+const FETCH_CHUNK = 1000;
 /** "My memos" in the rail. */
 export const MINE_LIMIT = 8;
 /** "Waiting for my decision" in the rail. */
@@ -44,7 +47,7 @@ export interface RailMemo {
 
 export interface ListData {
   memos: MemoListItem[];
-  /** Every match, beyond LIST_LIMIT too. */
+  /** Every match, beyond the rows shown too. */
   total: number;
   forMe: RailMemo[];
   mine: RailMemo[];
@@ -59,15 +62,22 @@ const LIST_COLUMNS =
 // Display name: the profile name, else the address (never empty in the UI).
 const nameOf = (p: ProfileRef): string => p?.full_name.trim() || p?.email || "";
 
-export async function loadListData(viewer: Viewer, filters: ListFilters): Promise<ListData> {
+/** The first `limit` matching memos (latest first) and how many match in all. */
+export async function loadListData(viewer: Viewer, filters: ListFilters, limit = LIST_PAGE): Promise<ListData> {
   const supabase = await createClient();
-
-  let list = supabase.from("memos").select(LIST_COLUMNS, { count: "exact" });
-  if (filters.team) list = list.eq("team", filters.team);
-  list = filters.status === "all" ? list.neq("status", "archived") : list.eq("status", filters.status);
   const pattern = searchPattern(filters.q);
-  // A plain column filter through the builder: never string-built `or=(…)`.
-  if (pattern) list = list.ilike("search_text", pattern);
+
+  // Rows from..to (inclusive) of the filtered list; the first range also counts every match.
+  const listRange = (from: number, to: number) => {
+    let list = supabase.from("memos").select(LIST_COLUMNS, from === 0 ? { count: "exact" } : undefined);
+    if (filters.team) list = list.eq("team", filters.team);
+    list = filters.status === "all" ? list.neq("status", "archived") : list.eq("status", filters.status);
+    // A plain column filter through the builder: never string-built `or=(…)`.
+    if (pattern) list = list.ilike("search_text", pattern);
+    return list.order("updated_at", { ascending: false }).order("id").range(from, to);
+  };
+  const ranges: ReturnType<typeof listRange>[] = [];
+  for (let from = 0; from < limit; from += FETCH_CHUNK) ranges.push(listRange(from, Math.min(from + FETCH_CHUNK, limit) - 1));
 
   const forMe = supabase
     .from("memos")
@@ -85,16 +95,12 @@ export async function loadListData(viewer: Viewer, filters: ListFilters): Promis
     .order("updated_at", { ascending: false })
     .limit(MINE_LIMIT);
 
-  const [listRes, forMeRes, mineRes] = await Promise.all([
-    list.order("updated_at", { ascending: false }).order("id").limit(LIST_LIMIT),
-    forMe,
-    mine,
-  ]);
-  for (const res of [listRes, forMeRes, mineRes]) {
+  const [listResults, forMeRes, mineRes] = await Promise.all([Promise.all(ranges), forMe, mine]);
+  for (const res of [...listResults, forMeRes, mineRes]) {
     if (res.error) throw new Error(`Could not load the memos (${res.error.code}): ${res.error.message}`);
   }
 
-  const memos: MemoListItem[] = (listRes.data ?? []).map((r) => ({
+  const memos: MemoListItem[] = listResults.flatMap((res) => res.data ?? []).map((r) => ({
     id: r.id,
     team: r.team,
     lang: r.lang,
@@ -111,7 +117,7 @@ export async function loadListData(viewer: Viewer, filters: ListFilters): Promis
 
   return {
     memos,
-    total: listRes.count ?? memos.length,
+    total: listResults[0].count ?? memos.length,
     forMe: rail(forMeRes.data),
     mine: rail(mineRes.data),
   };

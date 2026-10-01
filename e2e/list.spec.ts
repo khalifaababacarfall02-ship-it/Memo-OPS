@@ -89,7 +89,8 @@ test("a team member sees their team's memos and the ones they write or decide", 
   await expect(row).toContainText("par Gabin Growth · pour toi");
   await expect(row.locator(".lst-date")).toHaveText(/^Modifié le \d{1,2} \S+ à \d{2}:\d{2}$/);
   const draft = rows(page).filter({ hasText: `Remise 500${TAG}` });
-  await expect(draft).toContainText("pour à choisir");
+  await expect(draft).toContainText("par Gabin Growth · décideur à choisir");
+  await expect(draft).not.toContainText("pour");
   await expect(draft.locator(".lst-st")).toHaveText("Brouillon");
 });
 
@@ -110,6 +111,10 @@ test("an admin sees everything", async ({ page }) => {
   // No team: the new memo opens in Operations; no "not in a team" note for admins.
   await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=ops");
   await expect(page.locator(".lst-note")).toHaveCount(0);
+  // Admins write in any team: the filtered one.
+  await visit(page, { team: "finance" });
+  await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=finance");
+  await expect(page.locator("#bExample")).toHaveAttribute("href", "/memos/new?team=finance&example=1");
 });
 
 test("team pills filter and keep the status and the search", async ({ page }) => {
@@ -126,9 +131,12 @@ test("team pills filter and keep the status and the search", async ({ page }) =>
   await expect(page.locator("#hTitle")).toHaveText(/Les mémos\s*Growth/i);
   // The hero takes the team's cover and colours.
   await expect(page.locator("#heroImg")).toHaveAttribute("src", /growth/);
-  // New memo / example open in the filtered team.
-  await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=growth");
-  await expect(page.locator("#bExample")).toHaveAttribute("href", "/memos/new?team=growth&example=1");
+  // New memo / example open in a team they can write in: not Growth (not a member), their own.
+  await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=ops");
+  await expect(page.locator("#bExample")).toHaveAttribute("href", "/memos/new?team=ops&example=1");
+  await page.locator(".poles button[data-p=ops]").click();
+  await expect(page).toHaveURL(`/?team=ops&status=to_decide&q=${TAG}`);
+  await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=ops");
 
   await page.locator(".poles button[data-p=all]").click();
   await expect(page).toHaveURL(`/?status=to_decide&q=${TAG}`);
@@ -188,10 +196,10 @@ test("search: title words, content words, accents, ligatures, literal wildcards"
   await search(`a_b${TAG}`, ["m12"]); // not "axb…"
   await search(`ecrit par ops${TAG}`, ["m7"]);
 
-  // PostgREST's reserved characters are plain text: no error, nothing found.
+  // PostgREST's reserved characters are plain text: no error, nothing found, and the list says so.
   await search(`(x),y.z:${TAG}`, []);
-  await expect(page.locator(".lst-empty")).toContainText("Aucun mémo ici pour l’instant.");
-  await expect(page.locator(".lst-empty")).toContainText("Crée le premier avec « Nouveau mémo ».");
+  await expect(page.locator(".lst-empty")).toHaveText(`Aucun mémo ne correspond à « (x),y.z:${TAG} ».`);
+  await expect(page.locator(".lst-count")).toHaveText("0 mémo");
 
   // Enter searches at once; clearing the field shows everything again.
   await field.fill(`prix`);
@@ -243,16 +251,23 @@ test("rail: waiting for my decision, my memos, new memo links", async ({ page })
   await expect(page.locator("#forMe")).toContainText("Rien à décider pour l’instant.");
 });
 
-test("someone in no team: empty list, explanation, empty rail", async ({ page }) => {
+test("someone in no team: empty list, explanation, empty rail, no new memo", async ({ page }) => {
   await signIn(page, EMAILS.lonely);
   await visit(page, { q: TAG });
   await expect(rows(page)).toHaveCount(0);
-  await expect(page.locator(".lst-count")).toHaveText("0 mémos");
-  await expect(page.locator(".lst-empty")).toContainText("Aucun mémo ici pour l’instant.");
+  await expect(page.locator(".lst-count")).toHaveText("0 mémo");
+  await expect(page.locator(".lst-empty")).toHaveText(`Aucun mémo ne correspond à « ${TAG} ».`);
   await expect(page.locator(".lst-note")).toContainText("Tu n’es encore dans aucun pôle");
   await expect(page.locator("#forMe")).toContainText("Rien à décider pour l’instant.");
   await expect(page.locator("#mine")).toContainText("Pas encore de mémo.");
-  await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=ops");
+  // They can write in no team: no "New memo" (the database would refuse it).
+  await expect(page.locator("#bNew")).toHaveCount(0);
+  await expect(page.locator("#bExample")).toHaveCount(0);
+  await visit(page, { team: "ops" });
+  await expect(page.locator("#bNew")).toHaveCount(0);
+  // Without a search: the empty list, without the hint about the missing button.
+  await visit(page, {});
+  await expect(page.locator(".lst-empty")).toHaveText("Aucun mémo ici pour l’instant.");
 });
 
 test("FR/EN switch", async ({ page }) => {
@@ -266,6 +281,10 @@ test("FR/EN switch", async ({ page }) => {
   await expect(rows(page).filter({ hasText: `Mémo${TAG}` })).toContainText("by Gabin Growth · for you");
   await expect(rows(page).filter({ hasText: `Mémo${TAG}` }).locator(".lst-date")).toHaveText(/^Updated \d{1,2} \S+ at \d{2}:\d{2}$/);
   await expect(page.locator("#forMe h3")).toHaveText("Waiting for my decision");
+  await expect(rows(page).filter({ hasText: `Remise 500${TAG}` })).toContainText("by Gabin Growth · decision maker to be chosen");
+  await visit(page, { q: `nothing${TAG}`, team: "ops" });
+  await expect(page.locator(".lst-count")).toHaveText("0 memos");
+  await expect(page.locator(".lst-empty")).toHaveText(`No memo matches "nothing${TAG}".`);
   await page.locator(".lang button[data-l=fr]").click();
   await expect(page.locator("#hTitle")).toHaveText(/Les mémos\s*Opérations/i);
 });
@@ -293,10 +312,13 @@ test("unknown pages: the app's 404 with the way back", async ({ page }) => {
   await signIn(page, EMAILS.ops);
   const res = await page.goto("/nothing/here");
   expect(res?.status()).toBe(404);
-  await expect(page.locator(".solo-card")).toContainText("Ce mémo n’existe pas, ou tu n’y as pas accès.");
+  await expect(page.locator(".solo-card h2")).toHaveText("404");
+  // Not about a memo: any URL.
+  await expect(page.locator(".solo-card .intro")).toHaveText("Cette page n’existe pas.");
+  await expect(page).toHaveTitle(/^Cette page n’existe pas( · Mémo BoxHero)?$/);
   await expect(page.locator(".acct button")).toHaveText("Se déconnecter");
   await page.locator(".lang button[data-l=en]").click();
-  await expect(page.locator(".solo-card")).toContainText("This memo doesn’t exist, or you don’t have access to it.");
+  await expect(page.locator(".solo-card .intro")).toHaveText("This page doesn’t exist.");
   await page.getByRole("link", { name: "Back to memos" }).click();
   await expect(page).toHaveURL("/");
   await expect(page.locator("#hTitle")).toHaveText(/The memos/i);

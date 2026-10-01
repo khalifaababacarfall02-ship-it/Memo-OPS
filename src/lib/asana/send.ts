@@ -27,6 +27,7 @@ export interface AsanaApi {
   createTask(fields: TaskFields & { projects: string[] }): Promise<AsanaTask>;
   updateTask(gid: string, fields: TaskFields): Promise<AsanaTask>;
   getTask(gid: string): Promise<AsanaTask>;
+  deleteTask(gid: string): Promise<void>;
 }
 
 export interface SendDeps {
@@ -179,15 +180,32 @@ export async function handleSendToAsana(request: Request, deps: SendDeps): Promi
   }
   const url = taskUrl(pushed.task, projectGid);
 
-  // Only this column: anyone but the author resending title/content would be
-  // refused by the memos guard. RLS hides refused updates, hence .select().
+  // A new task: link it to the memo. Only this column (anyone but the author
+  // resending title/content would be refused by the memos guard), and only if
+  // the column still holds what we read (compare-and-set): two sends at the
+  // same time (author and decision maker, or a retry while the first one was
+  // still running) both create a task, and only the first to save keeps it.
+  // RLS hides refused updates, hence .select().
   if (gid !== memo.asana_task_gid) {
-    const { data: saved, error: saveError } = await supabase
-      .from("memos")
-      .update({ asana_task_gid: gid })
-      .eq("id", memo.id)
-      .select("id");
+    const update = supabase.from("memos").update({ asana_task_gid: gid }).eq("id", memo.id);
+    const { data: saved, error: saveError } = await (
+      memo.asana_task_gid === null ? update.is("asana_task_gid", null) : update.eq("asana_task_gid", memo.asana_task_gid)
+    ).select("id");
     if (saveError || !saved || saved.length !== 1) {
+      // Our task is linked to nothing: remove it rather than leave a duplicate.
+      await discardTask(deps.asana, gid);
+      if (!saveError) {
+        const winner = await linkedTask(supabase, memo.id, memo.asana_task_gid);
+        if (winner) {
+          const result: AsanaSendResult = {
+            gid: winner,
+            url: taskUrl({ gid: winner }, projectGid),
+            assigned: pushed.assigned,
+            updated: false,
+          };
+          return Response.json(result, { headers: NO_STORE });
+        }
+      }
       logAsana("save", new Error(saveError ? `${saveError.code}: ${saveError.message}` : "no row updated"));
       return fail("saveError");
     }
@@ -195,4 +213,24 @@ export async function handleSendToAsana(request: Request, deps: SendDeps): Promi
 
   const result: AsanaSendResult = { gid, url, assigned: pushed.assigned, updated: pushed.updated };
   return Response.json(result, { headers: NO_STORE });
+}
+
+/** Best effort: a task we created but could not link stays in Asana if this fails. */
+async function discardTask(api: AsanaApi, gid: string): Promise<void> {
+  try {
+    await api.deleteTask(gid);
+  } catch (e) {
+    logAsana("discard", e);
+  }
+}
+
+/**
+ * The task another send linked to the memo after we read it (re-read through
+ * RLS), or null when the gid did not change: then RLS refused our update.
+ */
+async function linkedTask(supabase: SupabaseClient<Database>, memoId: string, before: string | null): Promise<string | null> {
+  const { data, error } = await supabase.from("memos").select("asana_task_gid").eq("id", memoId).maybeSingle();
+  if (error || !data) return null;
+  const now = data.asana_task_gid;
+  return isTaskGid(now) && now !== before ? now : null;
 }

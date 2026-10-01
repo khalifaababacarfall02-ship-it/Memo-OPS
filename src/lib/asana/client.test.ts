@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ASANA_API_BASE, AsanaError, apiBase, createTask, getTask, updateTask } from "./client";
+import { ASANA_API_BASE, AsanaError, apiBase, createTask, deleteTask, getTask, updateTask } from "./client";
 
 const TOKEN = "1/123456:secret-token-value";
 
@@ -65,10 +65,22 @@ describe("requests", () => {
     expect(calls[0].init.body).toBeUndefined();
   });
 
+  it("deletes a task (Asana answers an empty data object)", async () => {
+    stubFetch(() => json(200, { data: {} }));
+    await expect(deleteTask("42")).resolves.toBeUndefined();
+    expect(calls[0].url).toBe(`${ASANA_API_BASE}/tasks/42`);
+    expect(calls[0].init.method).toBe("DELETE");
+    expect(calls[0].init.body).toBeUndefined();
+    expect(new Headers(calls[0].init.headers).get("authorization")).toBe(`Bearer ${TOKEN}`);
+    stubFetch(() => json(404, { errors: [{ message: "task: Unknown object: 42" }] }));
+    await expect(deleteTask("42")).rejects.toMatchObject({ kind: "http", status: 404 });
+  });
+
   it("refuses non-numeric gids before any request", async () => {
     stubFetch(() => json(200, { data: { gid: "1" } }));
     await expect(getTask("../users/me")).rejects.toMatchObject({ kind: "invalid" });
     await expect(updateTask("1?x=1", {})).rejects.toMatchObject({ kind: "invalid" });
+    await expect(deleteTask("1/stories")).rejects.toMatchObject({ kind: "invalid" });
     expect(calls).toHaveLength(0);
   });
 });

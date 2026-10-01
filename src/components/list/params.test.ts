@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fmtDate } from "./format";
-import { listHref, parseListParams } from "./params";
+import { LIST_PAGE, MAX_LIST_LIMIT, listHref, parseListLimit, parseListParams } from "./params";
 
 describe("parseListParams", () => {
   it("defaults to every team, every status but archived, no search", () => {
@@ -60,6 +60,38 @@ describe("listHref", () => {
     const filters = { team: "mini" as const, status: "to_decide" as const, q: "Œuvre, (test)" };
     const params = Object.fromEntries(new URL(listHref(filters), "http://x").searchParams);
     expect(parseListParams(params)).toEqual(filters);
+  });
+
+  it("adds the row limit after the first page, and keeps the filters", () => {
+    const filters = { team: "ops" as const, status: "draft" as const, q: "retours" };
+    expect(listHref(filters, LIST_PAGE)).toBe("/?team=ops&status=draft&q=retours");
+    expect(listHref(filters, 400)).toBe("/?team=ops&status=draft&q=retours&limit=400");
+    expect(listHref({ team: null, status: "all", q: "" }, 600)).toBe("/?limit=600");
+    const params = Object.fromEntries(new URL(listHref(filters, 400), "http://x").searchParams);
+    expect(parseListParams(params)).toEqual(filters);
+    expect(parseListLimit(params)).toBe(400);
+  });
+});
+
+describe("parseListLimit", () => {
+  it("defaults to one page", () => {
+    expect(parseListLimit({})).toBe(LIST_PAGE);
+    expect(LIST_PAGE).toBe(200);
+  });
+
+  it("rounds up to whole pages", () => {
+    expect(parseListLimit({ limit: "400" })).toBe(400);
+    expect(parseListLimit({ limit: "401" })).toBe(600);
+    expect(parseListLimit({ limit: "1" })).toBe(200);
+    expect(parseListLimit({ limit: "0" })).toBe(200);
+    expect(parseListLimit({ limit: ["800", "200"] })).toBe(800);
+  });
+
+  it("ignores anything else and caps huge values", () => {
+    for (const limit of ["-400", "4e2", "400.5", " 400", "abc", "", "9999999"]) {
+      expect(parseListLimit({ limit })).toBe(LIST_PAGE);
+    }
+    expect(parseListLimit({ limit: "999999" })).toBe(MAX_LIST_LIMIT);
   });
 });
 

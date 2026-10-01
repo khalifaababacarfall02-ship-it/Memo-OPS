@@ -81,9 +81,9 @@ function errorMessages(body: unknown): string[] {
 }
 
 async function request(
-  method: "GET" | "POST" | "PUT",
+  method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
-  opts: { data?: Record<string, unknown>; optFields?: string[] } = {},
+  opts: { data?: Record<string, unknown>; optFields?: string[]; empty?: boolean } = {},
 ): Promise<AsanaTask> {
   const token = process.env.ASANA_ACCESS_TOKEN;
   if (!token) throw new AsanaError("config");
@@ -114,6 +114,8 @@ async function request(
 
   if (!res.ok) throw new AsanaError("http", res.status, errorMessages(body));
   const data = body && typeof body === "object" ? (body as { data?: unknown }).data : undefined;
+  // DELETE answers `{ data: {} }`: nothing to read.
+  if (opts.empty) return { gid: "" };
   if (!data || typeof data !== "object" || typeof (data as { gid?: unknown }).gid !== "string") {
     throw new AsanaError("invalid", res.status);
   }
@@ -151,4 +153,12 @@ export async function updateTask(gid: string, fields: TaskFields): Promise<Asana
 /** GET /tasks/{gid} with its projects (to check it is in the Memos project) and link. */
 export async function getTask(gid: string): Promise<AsanaTask> {
   return request("GET", taskPath(gid), { optFields: ["memberships.project.gid", "permalink_url"] });
+}
+
+/**
+ * DELETE /tasks/{gid}. Used only for a task this request has just created and
+ * could not link to its memo (another send linked its own task first).
+ */
+export async function deleteTask(gid: string): Promise<void> {
+  await request("DELETE", taskPath(gid), { empty: true });
 }

@@ -25,7 +25,7 @@ export function MemoRows({ lang, memos, viewerId }: { lang: Lang; memos: MemoLis
                 {teamLabel(lang, m.team)}
               </span>
               <span>
-                {u.by} {who(m.author)} · {u.forL} {m.decider ? who(m.decider) : u.noDecider}
+                {u.by} {who(m.author)} · {m.decider ? `${u.forL} ${who(m.decider)}` : u.deciderTbd}
               </span>
               <span className="lst-date">{fmt(u.updatedL, { date: fmtDate(lang, m.updatedAt) })}</span>
             </span>

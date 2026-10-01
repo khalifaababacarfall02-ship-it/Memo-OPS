@@ -1,11 +1,5 @@
-/* Single-card pages (/login, 404): the hero, then one centred sheet instead
-   of the sheet + rail grid. Same tokens, radii and spacing as the prototype. */
-.wrap.solo{grid-template-columns:minmax(0,560px);justify-content:center}
-.sheet.solo-card{padding:32px 36px 36px}
-@media (max-width:600px){.sheet.solo-card{padding:24px 18px 28px}}
-.solo-h{margin:0 0 14px;font-size:30px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase;line-height:1.1}
-.btn.solo-btn{margin-top:16px}
-a.btn{text-decoration:none}
+/* /login only. The card itself (.solo, .solo-card, .solo-h) comes from
+   src/components/notfound/SoloStyles.tsx. */
 
 /* login form: the label of .titlefield, an input like the writing fields */
 .login-form label{display:block;font-size:14px;color:var(--muted);margin:22px 0 6px}
@@ -24,6 +18,10 @@ a.btn{text-decoration:none}
 .login-msg.ok{background:var(--acc-soft)}
 .login-msg.err{background:color-mix(in srgb,#C0392B 9%,var(--paper));color:#9B2C22}
 .login-msg.err::before{background:#C0392B}
+
+/* signed in without a profile (?error=profile): the way out, under the message */
+.login-signout{margin:0}
+.login-signout .btn{margin-top:14px}
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .login-msg.ok{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
   :root:not([data-theme="light"]) .login-msg.err{background:color-mix(in srgb,#C0392B 20%,var(--paper));color:#F4A79D}
