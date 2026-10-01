@@ -14,7 +14,8 @@ import { createClient } from "@/lib/supabase/server";
 import "@/styles/team.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: `${ui(await getLang()).teamH} · Mémo BoxHero` };
+  // The root layout's title template adds " · Mémo BoxHero".
+  return { title: ui(await getLang()).teamH };
 }
 
 // The hero pills lead to the list, filtered by team.

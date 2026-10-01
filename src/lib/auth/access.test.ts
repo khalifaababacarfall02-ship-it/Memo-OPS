@@ -141,3 +141,38 @@ describe("decideAccess: stray magic links", () => {
     expect(isStrayAuthCallback("/", new URLSearchParams("token_hash=&type=email"))).toBe(false);
   });
 });
+
+describe("decideAccess: Auth server unreachable", () => {
+  const down = (pathname: string, search = "", method = "GET"): AccessRequest => ({
+    pathname,
+    search,
+    method,
+    hasUser: false,
+    authDown: true,
+  });
+
+  it("never sends anyone to /login: pages go on (their own viewer check shows the error page)", () => {
+    for (const path of ["/", "/memos/3f0c", "/memos/new", "/team", "/login", "/auth/confirm"]) {
+      expect(decideAccess(down(path))).toEqual({ kind: "next" });
+      expect(decideAccess(down(path, "", "POST"))).toEqual({ kind: "next" });
+    }
+    expect(decideAccess(down("/login", "?next=%2Fteam"))).toEqual({ kind: "next" });
+  });
+
+  it("answers 503 on API routes, whatever the method", () => {
+    expect(decideAccess(down("/api/asana", "", "POST"))).toEqual({ kind: "unavailable" });
+    expect(decideAccess(down("/api/asana"))).toEqual({ kind: "unavailable" });
+  });
+
+  it("still serves static assets and forwards stray magic links", () => {
+    expect(decideAccess(down("/covers/ops.jpg"))).toEqual({ kind: "next" });
+    expect(decideAccess(down("/", "?token_hash=abc&type=email"))).toEqual({
+      kind: "redirect",
+      to: "/auth/confirm?token_hash=abc&type=email",
+    });
+  });
+
+  it("is only about outages: a plain signed-out visitor is still sent to /login", () => {
+    expect(decideAccess({ ...down("/team"), authDown: false })).toEqual({ kind: "redirect", to: "/login?next=%2Fteam" });
+  });
+});

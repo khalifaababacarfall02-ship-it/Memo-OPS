@@ -10,7 +10,9 @@ export type AccessDecision =
   /** Relative path (with query string) to redirect to. */
   | { kind: "redirect"; to: string }
   /** 401: API routes, and non-GET requests (Server Actions) from a signed-out visitor. */
-  | { kind: "unauthorized" };
+  | { kind: "unauthorized" }
+  /** 503: an API route while the Auth server cannot be reached. */
+  | { kind: "unavailable" };
 
 export interface AccessRequest {
   pathname: string;
@@ -19,6 +21,11 @@ export interface AccessRequest {
   /** HTTP method, "GET" by default. */
   method?: string;
   hasUser: boolean;
+  /**
+   * The session could not be checked because the Auth server is unreachable
+   * (a retryable fetch error): unknown, not signed out.
+   */
+  authDown?: boolean;
 }
 
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([LOGIN_PATH, CONFIRM_PATH, SIGNOUT_PATH]);
@@ -32,6 +39,7 @@ const AUTH_CODE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 
 const NEXT: AccessDecision = { kind: "next" };
 const UNAUTHORIZED: AccessDecision = { kind: "unauthorized" };
+const UNAVAILABLE: AccessDecision = { kind: "unavailable" };
 
 export const isApiPath = (pathname: string): boolean => pathname === "/api" || pathname.startsWith("/api/");
 
@@ -47,7 +55,7 @@ export function isStrayAuthCallback(pathname: string, params: URLSearchParams): 
   return pathname === "/" && AUTH_CODE.test(params.get("code") ?? "");
 }
 
-export function decideAccess({ pathname, search, method = "GET", hasUser }: AccessRequest): AccessDecision {
+export function decideAccess({ pathname, search, method = "GET", hasUser, authDown = false }: AccessRequest): AccessDecision {
   if (STATIC_ASSET.test(pathname)) return NEXT;
 
   const isRead = method === "GET" || method === "HEAD";
@@ -57,6 +65,11 @@ export function decideAccess({ pathname, search, method = "GET", hasUser }: Acce
   if (isRead && !isApi && isStrayAuthCallback(pathname, params)) {
     return { kind: "redirect", to: CONFIRM_PATH + normalizeSearch(search) };
   }
+
+  // An Auth outage is not a sign-out: sending everyone to /login would log
+  // them out of nothing (and could loop). Pages go on and fail on their own
+  // viewer check (the error page with "Try again"); API callers get a 503.
+  if (authDown) return isApi ? UNAVAILABLE : NEXT;
 
   if (PUBLIC_PATHS.has(pathname)) {
     // A signed-in visitor has nothing to do on /login, except read an error:

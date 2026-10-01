@@ -6,7 +6,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { BackIcon } from "@/components/list/icons";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { DEFAULT_LANG, type Lang, doc, isLang, ui } from "@/lib/content";
-import "@/styles/login.css";
+import { SoloStyles } from "@/components/notfound/SoloStyles";
 
 function cookieLang(): Lang {
   const m = document.cookie.match(/(?:^|; )bxh-lang=(\w+)/);
@@ -24,6 +24,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   return (
     <AppFrame lang={lang} team="ops" title={[u.memo, "BoxHero"]} tag={doc(lang).tag} wrapClassName="solo">
       <main className="sheet solo-card">
+        <SoloStyles />
         <h2 className="solo-h">{u.errorH}</h2>
         <div className="intro">
           <p>{u.errorMsg}</p>

@@ -8,7 +8,7 @@ begin
   end if;
 end
 $$;
-select plan(39);
+select plan(45);
 
 -- ---------- helpers (rolled back with the transaction) ----------
 create schema bxh_test;
@@ -148,14 +148,47 @@ select is((select created_at from public.memos where id = bxh_test.memo(10)), no
   'created_at cannot be backdated');
 select is((select asana_task_gid from public.memos where id = bxh_test.memo(10)), null,
   'a new memo is not linked to an Asana task');
+-- A memo is created in one of the author's teams (admins: any team); the decision
+-- maker can be anyone, and reads the memo as its decision maker.
+select throws_ok(
+  $$ insert into public.memos (id, team, lang) values (bxh_test.memo(11), 'finance', 'fr') $$,
+  '42501', 'new row violates row-level security policy for table "memos"',
+  'a memo cannot be created in a team one is not in'
+);
+select throws_ok(
+  $$ insert into public.memos (team, lang, decider_id) values ('growth', 'fr', bxh_test.uid('outsider')) $$,
+  '42501', 'new row violates row-level security policy for table "memos"',
+  'not even to send it to someone of that team'
+);
+select lives_ok(
+  $$ insert into public.memos (id, team, lang, title, decider_id)
+     values (bxh_test.memo(13), 'ops', 'fr', 'ops-for-outsider', bxh_test.uid('outsider')) $$,
+  'a memo of one''s own team can go to a decision maker from any team'
+);
+call bxh_test.login('outsider');
+select ok('ops-for-outsider' = any (bxh_test.visible()), 'who then reads it as its decision maker');
+call bxh_test.login('admin');
 select lives_ok(
   $$ insert into public.memos (id, team, lang) values (bxh_test.memo(11), 'finance', 'fr') $$,
-  'a memo can be written for another team, with defaults for everything else'
+  'an admin (in no team) can create a memo in any team, with defaults for everything else'
 );
-select ok(
-  'crea-by-author' = any (bxh_test.visible()) and exists (select 1 from public.memos where id = bxh_test.memo(11)),
-  'and its author can read it back'
+select results_eq(
+  $$ select author_id, team::text, status::text from public.memos where id = bxh_test.memo(11) $$,
+  $$ values (bxh_test.uid('admin'), 'finance', 'draft') $$,
+  'and reads it back'
 );
+call bxh_test.login('loner');
+select throws_ok(
+  $$ insert into public.memos (team, lang) values ('ops', 'fr') $$,
+  '42501', 'new row violates row-level security policy for table "memos"',
+  'someone in no team cannot create a memo'
+);
+select throws_ok(
+  $$ insert into public.memos (team, lang) values ('mini', 'fr') $$,
+  '42501', 'new row violates row-level security policy for table "memos"',
+  'not even a mini memo'
+);
+call bxh_test.login('author');
 select throws_ok(
   $$ insert into public.memos (team, lang, content) values ('ops', 'fr', '["not", "an", "object"]') $$,
   '23514', null,

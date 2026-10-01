@@ -1,4 +1,4 @@
-// The list's URL: `/?team=…&status=…&q=…`. Pure (no Next.js, no Supabase), so
+// The list's URL: `/?team=…&status=…&q=…[&limit=…]`. Pure (no Next.js, no Supabase), so
 // the Server Component, the search field and the tests share it.
 import { type Team, isTeam } from "@/lib/content";
 import { type MemoStatus, MEMO_STATUSES, isStatus } from "@/lib/memo/model";
@@ -36,13 +36,33 @@ export function parseListParams(params: RawSearchParams): ListFilters {
   };
 }
 
-/** "/", "/?team=ops", "/?team=ops&status=decided&q=retours": defaults are left out. */
-export function listHref({ team, status, q }: ListFilters): string {
+/** Rows of the first page, and how many more each "Show more" adds. */
+export const LIST_PAGE = 200;
+/** Upper bound for `limit` (a URL can ask for anything). */
+export const MAX_LIST_LIMIT = 10_000;
+
+/**
+ * How many rows to show: `limit` rounded up to whole pages, LIST_PAGE by
+ * default. Kept apart from the filters: changing a filter or the search goes
+ * back to the first page.
+ */
+export function parseListLimit(params: RawSearchParams): number {
+  const raw = first(params.limit);
+  const n = typeof raw === "string" && /^\d{1,6}$/.test(raw) ? Number(raw) : LIST_PAGE;
+  return Math.min(MAX_LIST_LIMIT, Math.max(LIST_PAGE, Math.ceil(n / LIST_PAGE) * LIST_PAGE));
+}
+
+/**
+ * "/", "/?team=ops", "/?team=ops&status=decided&q=retours", "…&limit=400":
+ * defaults are left out.
+ */
+export function listHref({ team, status, q }: ListFilters, limit = LIST_PAGE): string {
   const params = new URLSearchParams();
   if (team) params.set("team", team);
   if (status !== "all") params.set("status", status);
   const text = q.trim();
   if (text) params.set("q", text);
+  if (limit > LIST_PAGE) params.set("limit", String(limit));
   const query = params.toString();
   return query ? `/?${query}` : "/";
 }

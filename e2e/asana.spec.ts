@@ -37,6 +37,18 @@ const rejected = new Set<string>(); // assignees Asana does not know
 let down = false;
 let nextGid = 1300000000000001;
 let server: Server;
+// When > 0, task creations wait until that many have arrived, then all are answered
+// (two sends racing each other).
+let holdCreates = 0;
+const held: (() => void)[] = [];
+const waitForOtherCreates = () =>
+  new Promise<void>((resolve) => {
+    held.push(resolve);
+    if (held.length >= holdCreates) {
+      holdCreates = 0;
+      for (const release of held.splice(0)) release();
+    }
+  });
 
 const body = (req: IncomingMessage) =>
   new Promise<string>((resolve) => {
@@ -67,6 +79,7 @@ function startMock(): Promise<void> {
       return send(400, { errors: [{ message: `assignee: Not a recognized ID: ${assignee}` }] });
     }
     if (req.method === "POST" && !gid) {
+      if (holdCreates > 0) await waitForOtherCreates();
       const projects = (data?.projects as string[]) ?? [];
       if (projects.length !== 1) return send(400, { errors: [{ message: "projects: Missing input" }] });
       const newGid = String(nextGid++);
@@ -81,6 +94,10 @@ function startMock(): Promise<void> {
     if (req.method === "PUT") {
       Object.assign(task, { name: String(data?.name), notes: String(data?.html_notes) }, assignee ? { assignee } : {});
       return send(200, { data: { gid, permalink_url: link(gid, task.project) } });
+    }
+    if (req.method === "DELETE") {
+      tasks.delete(gid);
+      return send(200, { data: {} });
     }
     return send(405, { errors: [{ message: "Method not allowed" }] });
   });
@@ -267,4 +284,36 @@ test("who may send: readers get 403, people without access 404, bad input 400, n
   expect(res.status()).toBe(401);
   await Promise.all([reader, outsider, author].map((p) => p.context().close()));
   await anon.close();
+});
+
+test("two sends at the same time (author and decision maker) leave one task", async ({ browser }) => {
+  await admin().from("memos").update({ asana_task_gid: null }).eq("id", memoId);
+  const author = await as(browser, AUTHOR);
+  const decider = await as(browser, DECIDER);
+  seen.length = 0;
+  const firstNew = nextGid;
+  // Both requests read the memo (no task yet) and create a task before either saves.
+  holdCreates = 2;
+  const [a, b] = await Promise.all([sendAsana(author), sendAsana(decider)]);
+  expect(a.status()).toBe(200);
+  expect(b.status()).toBe(200);
+  const [outA, outB] = [await json(a), await json(b)];
+  // Both answer with the task linked to the memo.
+  const stored = await storedGid();
+  expect(outA.gid).toBe(stored);
+  expect(outB.gid).toBe(stored);
+  expect(outA.url).toBe(`https://app.asana.com/0/${PROJECT}/${stored}`);
+  expect(seen.filter((r) => r.method === "POST")).toHaveLength(2);
+  // The task that lost the race was removed from Asana: one task left for this send.
+  const deleted = seen.filter((r) => r.method === "DELETE");
+  expect(deleted).toHaveLength(1);
+  expect(deleted[0].path).not.toBe(`/api/1.0/tasks/${stored}`);
+  expect(deleted[0].auth).toBe(`Bearer ${TOKEN}`);
+  expect([...tasks.keys()].filter((g) => g !== FOREIGN_TASK && Number(g) >= firstNew)).toEqual([stored]);
+
+  // Sending again updates that task: still one.
+  seen.length = 0;
+  expect(await json(await sendAsana(decider))).toMatchObject({ gid: stored, updated: true });
+  expect(seen.map((r) => r.method)).toEqual(["GET", "PUT"]);
+  await Promise.all([author, decider].map((p) => p.context().close()));
 });

@@ -1,6 +1,8 @@
 // Sign-in page: one card under the hero, an email field, a magic link.
 // Public (the proxy lets it through and sends signed-in visitors on).
+import type { Metadata } from "next";
 import { LoginForm } from "@/components/login/LoginForm";
+import { SoloStyles } from "@/components/notfound/SoloStyles";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { allowedDomains } from "@/lib/auth/allowed-email";
 import { safeNext } from "@/lib/auth/redirect";
@@ -10,6 +12,10 @@ import "@/styles/login.css";
 
 type Params = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: ui(await getLang()).loginH };
+}
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
@@ -32,6 +38,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       wrapClassName="solo"
     >
       <main className="sheet solo-card">
+        <SoloStyles />
         <h2 className="solo-h">{u.loginH}</h2>
         <LoginForm
           next={safeNext(first(params.next))}
@@ -52,6 +59,30 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             },
           }}
         />
+        {code === "profile" && (
+          // Signed in, but the account has no profile: the hero shows no account
+          // menu here, so this is the only way to leave that session.
+          <form action="/auth/signout" method="post" className="login-signout">
+            <button type="submit" className="btn ghost">
+              <span className="l">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                {u.signOut}
+              </span>
+            </button>
+          </form>
+        )}
       </main>
     </AppFrame>
   );
