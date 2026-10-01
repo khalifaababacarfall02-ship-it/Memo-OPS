@@ -15,3 +15,8 @@
 }
 :root[data-theme="dark"] .ex,
 :root[data-theme="dark"] .gparts div{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
+
+/* Phones: the prototype's single column (`1fr`) lets a long unbreakable title
+   in the rail widen the whole page. minmax(0,1fr) + min-width:0 keep it inside. */
+@media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.wrap>*{min-width:0}

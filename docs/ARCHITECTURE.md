@@ -132,6 +132,9 @@ of the migration (e.g. `memo status change not allowed: draft -> decided`,
 **Search.** `search_text` = lower(unaccent(title + every string value of `content` except `id` and
 `kind`)). Normalise the query the same way before `ilike '%q%'`: NFD, strip combining marks,
 œ→oe, æ→ae, ß→ss, lowercase; escape `%`, `_`, `\` and PostgREST's reserved characters.
+The JS mirror is `src/lib/search.ts` (checked against Postgres' unaccent on every character of the
+copy); the value goes only through `.ilike()`. A typed `*` becomes `_` because PostgREST reads `*` as
+`%` in ilike values and has no escape for it. The list's default status filter (`all`) excludes archived memos.
 
 ### Sign-up restriction
 

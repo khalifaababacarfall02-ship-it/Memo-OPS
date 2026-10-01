@@ -531,7 +531,10 @@
       "decidedOn": "Décidé le {date}",
       "noDecider": "à choisir",
       "lastAdmin": "Il faut garder au moins un admin.",
-      "notAllowed": "Tu n’as pas le droit de faire ça."
+      "notAllowed": "Tu n’as pas le droit de faire ça.",
+      "errorH": "Oups",
+      "errorMsg": "Quelque chose n’a pas marché. Réessaie dans un instant.",
+      "retry": "Réessayer"
     },
     "placeholders": {
       "memo": [
@@ -990,7 +993,10 @@
       "decidedOn": "Decided on {date}",
       "noDecider": "to be chosen",
       "lastAdmin": "Keep at least one admin.",
-      "notAllowed": "You’re not allowed to do that."
+      "notAllowed": "You’re not allowed to do that.",
+      "errorH": "Oops",
+      "errorMsg": "Something went wrong. Try again in a moment.",
+      "retry": "Try again"
     },
     "placeholders": {
       "memo": [
