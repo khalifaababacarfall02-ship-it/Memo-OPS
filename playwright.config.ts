@@ -19,6 +19,8 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     locale: "fr-FR",
+    // Under the C locale Chromium names non-ASCII downloads "download".
+    launchOptions: { env: { ...process.env, LANG: "C.UTF-8" } },
     timezoneId: "Europe/Paris",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } } }],

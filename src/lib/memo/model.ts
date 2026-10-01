@@ -234,14 +234,11 @@ export const canDelete = (status: MemoStatus, role: MemoRole): boolean =>
 
 export const statusLabel = (lang: Lang, s: MemoStatus): string => ui(lang).status[s];
 
-/** Asana/PDF title prefix, e.g. "MÉMO : ", "AD: ". Kept here so copy, PDF and API agree. */
+/** Asana/PDF title prefix, e.g. "MÉMO : ", "AD: " (content/boxhero.json). Kept here so copy, PDF and API agree. */
 export function titlePrefix(lang: Lang, team: Team, style: "asana" | "pdf"): string {
-  if (team === "mini") {
-    if (style === "asana") return lang === "fr" ? "PUB : " : "AD: ";
-    return lang === "fr" ? "Mini-mémo : " : "Mini memo: ";
-  }
-  if (style === "asana") return lang === "fr" ? "MÉMO : " : "MEMO: ";
-  return lang === "fr" ? "Mémo : " : "Memo: ";
+  const u = ui(lang);
+  if (style === "asana") return team === "mini" ? u.prefixAsanaMini : u.prefixAsana;
+  return team === "mini" ? u.prefixPdfMini : u.prefixPdf;
 }
 
 export { isTeam };

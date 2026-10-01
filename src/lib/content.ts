@@ -55,9 +55,7 @@ export function fmt(template: string, vars: Record<string, string | number>): st
 /** Hero title, line 1 / line 2 (prototype: "LE MÉMO" / "OPÉRATIONS", "LE MINI-MÉMO" / "PUB"). */
 export function heroTitle(lang: Lang, team: Team): [string, string] {
   const u = ui(lang);
-  return team === "mini"
-    ? [u.mini, lang === "fr" ? "Pub" : "Ad"]
-    : [u.memo, u.poles[team]];
+  return team === "mini" ? [u.mini, u.heroMini] : [u.memo, u.poles[team]];
 }
 export const heroTag = (lang: Lang, team: Team): string =>
   team === "mini" ? doc(lang).mini.tag : doc(lang).tag;

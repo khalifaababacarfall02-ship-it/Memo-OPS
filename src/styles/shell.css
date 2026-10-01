@@ -20,3 +20,26 @@
    in the rail widen the whole page. minmax(0,1fr) + min-width:0 keep it inside. */
 @media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
 .wrap>*{min-width:0}
+
+/* Skip link: hidden until focused. */
+.skip{position:absolute;left:12px;top:-60px;z-index:70;background:#fff;color:var(--night);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none}
+.skip:focus{top:calc(12px + env(safe-area-inset-top,0px))}
+.wrap:focus{outline:none}
+
+/* Phones: the account pill leaves the hero (the prototype's brand row only has the
+   wordmark and the language switch) and sits above the footer, on the page colours. */
+.acct-foot{display:none}
+@media (max-width:600px){
+  .hero .acct{display:none}
+  .acct-foot{display:flex;max-width:1180px;margin:-36px auto 14px;padding:0 20px}
+  .acct-foot .acct{background:var(--soft)}
+  .acct-foot .acct button,.acct-foot .acct-link{color:var(--ink)}
+  .acct-foot .acct button:hover,.acct-foot .acct-link:hover{background:var(--line)}
+}
+
+/* Dark mode: the prototype's night-coloured primary button vanishes on the dark
+   card (1.07:1); outline it so it stays visible. Light mode is unchanged. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+}
+:root[data-theme="dark"] .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}

@@ -1,6 +1,6 @@
 // Page skeleton shared by every screen: hero, the sheet + rail grid, footer.
 // Children are the `<main className="sheet">` and `<aside className="rail">`.
-import { type Lang, type Team, teamStyle, ui } from "@/lib/content";
+import { type Lang, type Team, doc, teamStyle, ui } from "@/lib/content";
 import { AccountMenu } from "./AccountMenu";
 import { Hero } from "./Hero";
 import { TeamTheme } from "./TeamTheme";
@@ -28,20 +28,23 @@ export function AppFrame({
   wrapClassName?: string;
   children: React.ReactNode;
 }) {
+  const u = ui(lang);
+  const account = viewer ? <AccountMenu lang={lang} email={viewer.email} isAdmin={viewer.isAdmin} /> : null;
   return (
     <div className="app" style={teamStyle(team) as React.CSSProperties}>
+      <a className="skip" href="#content">
+        {u.skip}
+      </a>
       <TeamTheme team={team} />
-      <Hero
-        lang={lang}
-        team={team}
-        title={title}
-        tag={tag}
-        pills={pills}
-        account={viewer ? <AccountMenu lang={lang} email={viewer.email} isAdmin={viewer.isAdmin} /> : null}
-      />
-      <div className={wrapClassName ? `wrap ${wrapClassName}` : "wrap"}>{children}</div>
+      <Hero lang={lang} team={team} title={title} tag={tag} pills={pills} account={account} />
+      <div className={wrapClassName ? `wrap ${wrapClassName}` : "wrap"} id="content" tabIndex={-1}>
+        {children}
+      </div>
+      {/* On phones the account pill moves here, so the hero keeps the prototype's layout. */}
+      {account && <div className="acct-foot">{account}</div>}
       <p className="foot" id="foot">
-        {ui(lang).foot}
+        {/* Signed-out visitors (login) get the signature only, not "your memos are saved". */}
+        {viewer ? u.foot : doc(lang).sig}
       </p>
     </div>
   );

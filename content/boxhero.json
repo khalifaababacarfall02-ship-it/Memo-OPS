@@ -534,7 +534,14 @@
       "notAllowed": "Tu n’as pas le droit de faire ça.",
       "errorH": "Oups",
       "errorMsg": "Quelque chose n’a pas marché. Réessaie dans un instant.",
-      "retry": "Réessayer"
+      "retry": "Réessayer",
+      "langL": "Langue",
+      "skip": "Aller au contenu",
+      "prefixAsana": "MÉMO : ",
+      "prefixAsanaMini": "PUB : ",
+      "prefixPdf": "Mémo : ",
+      "prefixPdfMini": "Mini-mémo : ",
+      "heroMini": "Pub"
     },
     "placeholders": {
       "memo": [
@@ -996,7 +1003,14 @@
       "notAllowed": "You’re not allowed to do that.",
       "errorH": "Oops",
       "errorMsg": "Something went wrong. Try again in a moment.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "langL": "Language",
+      "skip": "Skip to content",
+      "prefixAsana": "MEMO: ",
+      "prefixAsanaMini": "AD: ",
+      "prefixPdf": "Memo: ",
+      "prefixPdfMini": "Mini memo: ",
+      "heroMini": "Ad"
     },
     "placeholders": {
       "memo": [

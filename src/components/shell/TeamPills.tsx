@@ -37,7 +37,7 @@ export function TeamPills({
 
   return (
     <>
-      <div className="poles" role="group">
+      <div className="poles" id="poles" role="group" aria-label={u.teamsL}>
         {keys.map((k) => (
           <button key={k} type="button" data-p={k} aria-pressed={k === active} onClick={() => select(k)}>
             {k === "all" ? u.allTeams : u.poles[k]}
