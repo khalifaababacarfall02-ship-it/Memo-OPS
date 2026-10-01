@@ -1,0 +1,67 @@
+/* List view (/): the prototype had no list, so it is built from its own
+   pieces: the search field is the sheet's .titlefield, the status tabs are the
+   guide's chips, the rows are bordered like the writing fields, the rail
+   reuses .panel, .btn and .memos. Tokens only, light and dark. */
+
+/* One column below 920px, as in the prototype, but never wider than the
+   screen: `1fr` alone lets a long unbreakable title (the rail's nowrap
+   titles) widen the whole page. */
+@media (max-width:920px){.wrap.lst-wrap{grid-template-columns:minmax(0,1fr)}}
+.lst-wrap>*{min-width:0}
+
+/* search: the .titlefield look, with a magnifier */
+.titlefield.lst-search{margin:4px 0 0}
+.lst-field{position:relative}
+.lst-field svg{position:absolute;left:2px;top:50%;width:22px;height:22px;margin-top:-13px;color:var(--muted);pointer-events:none}
+.lst-search input[type=search]{padding-left:34px;-webkit-appearance:none;appearance:none;border-radius:0}
+.lst-search input[type=search]::-webkit-search-decoration{-webkit-appearance:none}
+.lst-search input[type=search]::-webkit-search-cancel-button{cursor:pointer}
+.lst-search[aria-busy="true"] svg{color:var(--acc)}
+/* phones: a little smaller so the whole placeholder fits */
+@media (max-width:600px){.lst-search input[type=search]{font-size:20px}}
+
+/* status tabs + count */
+.lst-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:18px 0 16px}
+.lst-tabs{display:flex;flex-wrap:wrap;gap:8px}
+.lst-tabs a{background:var(--soft);color:var(--ink);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px;line-height:1.3;text-decoration:none}
+.lst-tabs a:hover{background:color-mix(in srgb,var(--ink) 8%,var(--soft))}
+.lst-tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.lst-tabs a:focus-visible{border-radius:999px}
+.lst-count{margin:0 0 0 auto;color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+
+/* rows */
+.lst{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.lst-row{display:block;border:1.5px solid var(--line);border-radius:var(--r-md);padding:14px 16px 13px;background:var(--paper);color:var(--ink);text-decoration:none;transition:border-color .15s,box-shadow .15s}
+.lst-row:hover{border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 12%,transparent)}
+/* the global :focus-visible rounds to 6px: keep each shape's own radius */
+.lst-row:focus-visible{border-radius:var(--r-md)}
+.lst-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.lst-title{font-size:17px;font-weight:700;line-height:1.35;min-width:0;overflow-wrap:anywhere}
+.lst-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:8px;font-size:13px;color:var(--muted)}
+.lst-team{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:999px;padding:2px 10px 2px 8px;font-weight:600;color:var(--ink)}
+.lst-team i{width:8px;height:8px;border-radius:50%;background:var(--dot,var(--acc));flex:none}
+.lst-date{margin-left:auto}
+@media (max-width:600px){.lst-date{margin-left:0}}
+
+/* status badges: one calm hue each, readable in both themes */
+.lst-st{flex:none;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;line-height:1.4;white-space:nowrap;border:1px solid transparent;margin-top:1px}
+.st-draft{background:var(--soft);color:var(--muted);border-color:var(--line)}
+.st-to_decide{background:#FDF0D5;color:#8A5300}
+.st-decided{background:#E2F3E9;color:#1D6B45}
+.st-archived{background:transparent;color:var(--muted);border-color:var(--line);border-style:dashed}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .st-to_decide{background:color-mix(in srgb,#E2A33B 18%,var(--paper));color:#F2C46D}
+  :root:not([data-theme="light"]) .st-decided{background:color-mix(in srgb,#3FB57D 18%,var(--paper));color:#86DBAE}
+}
+:root[data-theme="dark"] .st-to_decide{background:color-mix(in srgb,#E2A33B 18%,var(--paper));color:#F2C46D}
+:root[data-theme="dark"] .st-decided{background:color-mix(in srgb,#3FB57D 18%,var(--paper));color:#86DBAE}
+
+/* empty state */
+.intro.lst-empty{padding:18px 20px}
+.intro.lst-empty p{text-wrap:pretty}
+
+/* rail: the prototype's buttons and memo list, as links */
+a.btn{text-decoration:none}
+.memos a.open{display:block;color:inherit;text-decoration:none}
+.memos a.open:hover{background:var(--soft)}
+.lst-none,.lst-note{margin:0;color:var(--muted);font-size:14px}
