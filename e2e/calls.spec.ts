@@ -354,6 +354,8 @@ test("connect a calendar, see the next calls, prepare a memo from one", async ({
   await dialog.locator("#calUrl").fill("https://evil.example.com/cal.ics");
   await dialog.locator("#calSave").click();
   await expect(dialog.locator("#calMsg")).toHaveText(fr.calBadHost);
+  // The pasted link stays in the field after an error.
+  await expect(dialog.locator("#calUrl")).toHaveValue("https://evil.example.com/cal.ics");
   await dialog.locator("#calUrl").fill(`${CAL_URL}/not-a-calendar`);
   await dialog.locator("#calSave").click();
   await expect(dialog.locator("#calMsg")).toHaveText(fr.calNotIcs);

@@ -9,7 +9,7 @@ begin
   end if;
 end
 $$;
-select plan(72);
+select plan(73);
 
 -- ---------- extensions and types ----------
 select has_extension('extensions', 'pg_trgm', 'pg_trgm lives in schema extensions');
@@ -131,7 +131,15 @@ select is_empty(
   'anon: nothing on invitations, participants, calls, calendar links'
 );
 select table_privs_are('public', 'memo_participants', 'authenticated', array['SELECT', 'INSERT', 'DELETE'], 'authenticated: read/insert/delete memo_participants');
-select table_privs_are('public', 'profiles', 'authenticated', array['SELECT', 'UPDATE'], 'authenticated: read/update profiles');
+select table_privs_are('public', 'profiles', 'authenticated', array['SELECT'], 'authenticated: read profiles (updates column by column)');
+select results_eq(
+  $$ select c.column_name::text collate "default" from information_schema.columns c
+     where c.table_schema = 'public' and c.table_name = 'profiles'
+       and has_column_privilege('authenticated', 'public.profiles', c.column_name, 'UPDATE')
+     order by 1 $$,
+  array['asana_user_gid', 'full_name', 'is_admin'],
+  'authenticated may update only full_name, is_admin, asana_user_gid (never onboarded_at, id, email)'
+);
 select table_privs_are('public', 'team_members', 'authenticated', array['SELECT', 'INSERT', 'DELETE'], 'authenticated: read/insert/delete team_members');
 select table_privs_are('public', 'memos', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated: CRUD on memos');
 select table_privs_are('public', 'memo_answers', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated: CRUD on memo_answers');

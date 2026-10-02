@@ -27,6 +27,9 @@ export function CalendarDialog({
   const input = useRef<HTMLInputElement>(null);
   const [state, action, pending] = useActionState(saveCalendarLink, IDLE);
   const [removing, setRemoving] = useState(false);
+  // Controlled: React resets uncontrolled fields after each action, errors included
+  // (a long Proton or Google link would have to be pasted again).
+  const [url, setUrl] = useState("");
   const handled = useRef<CalendarLinkState>(IDLE);
 
   useEffect(() => {
@@ -75,6 +78,8 @@ export function CalendarDialog({
           autoComplete="off"
           spellCheck={false}
           placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
           aria-invalid={state.status === "error" || undefined}
           aria-describedby="calMsg"
         />

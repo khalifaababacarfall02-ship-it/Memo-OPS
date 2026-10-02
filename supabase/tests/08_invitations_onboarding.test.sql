@@ -8,7 +8,7 @@ begin
   end if;
 end
 $$;
-select plan(32);
+select plan(36);
 
 create schema bxh_test;
 grant usage on schema bxh_test to public;
@@ -127,6 +127,16 @@ select throws_ok(
   'someone not invited still cannot sign up'
 );
 
+-- Removing an invitation also clears the older SQL-only list.
+insert into private.allowed_emails (email) values ('pgtap.legacy@proton.test');
+insert into public.invitations (email) values ('pgtap.legacy@proton.test');
+call bxh_test.login('admin');
+select is(bxh_test.rows($$ delete from public.invitations where email = 'pgtap.legacy@proton.test' $$), 1,
+  'an admin removes an invitation');
+call bxh_test.anon();
+select ok(not public.can_sign_in('pgtap.legacy@proton.test'), 'removed: that address can no longer sign up');
+call bxh_test.logout();
+
 -- An account keeps signing in after its invitation is removed.
 delete from public.invitations where email = 'pgtap.placed@proton.test';
 call bxh_test.anon();
@@ -154,6 +164,15 @@ select is(
 );
 select lives_ok($$ select public.complete_onboarding('Other Name', 'finance') $$, 'a second call does nothing (no error)');
 select is(bxh_test.teams('guest'), array['growth'], 'the pôle cannot be changed this way afterwards');
+select throws_ok(
+  $$ update public.profiles set onboarded_at = null where id = bxh_test.uid('guest') $$,
+  '42501', null,
+  'nobody resets their own first sign-in (to pick a pôle again)'
+);
+select lives_ok(
+  $$ update public.profiles set full_name = 'Gus G.' where id = bxh_test.uid('guest') $$,
+  'the name stays editable'
+);
 
 call bxh_test.login('placed');
 select lives_ok($$ select public.complete_onboarding('Paula Placed', 'ops') $$, 'someone already in a pôle only gives a name');

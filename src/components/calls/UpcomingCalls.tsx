@@ -2,13 +2,20 @@
 // calls from their calendar and from the memos they are in. Rendered inside a
 // <Suspense>: the list does not wait for the calendar.
 import type { Viewer } from "@/lib/auth/viewer";
-import { loadHomeCalls } from "@/lib/calendar/home";
+import { type HomeCalls, loadHomeCalls } from "@/lib/calendar/home";
 import { type Lang, type Team, ui } from "@/lib/content";
 import { canCreateIn } from "@/lib/memo/editor/types";
 import { CallsList } from "./CallsList";
 
 export async function UpcomingCalls({ lang, viewer, team }: { lang: Lang; viewer: Viewer; team: Team | null }) {
-  const data = await loadHomeCalls(viewer);
+  let data: HomeCalls;
+  try {
+    data = await loadHomeCalls(viewer);
+  } catch (e) {
+    // Never take the memo list down with it: say the calls could not be read.
+    console.error("[calls] could not load the next calls", e instanceof Error ? e.message : e);
+    data = { connected: true, calendarDown: true, calls: [], names: {} };
+  }
   const canPrepare = viewer.isAdmin || viewer.teams.length > 0;
   return (
     <CallsList

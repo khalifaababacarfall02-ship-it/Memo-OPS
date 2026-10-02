@@ -54,3 +54,61 @@ describe("upcomingEvents", () => {
     expect(() => upcomingEvents("BEGIN:VCALENDAR\r\nBROKEN", window)).toThrow(IcsError);
   });
 });
+
+describe("time zones the file does not define", () => {
+  const cal = (body: string, head = "") =>
+    ["BEGIN:VCALENDAR", "VERSION:2.0", head, body, "END:VCALENDAR", ""].filter(Boolean).join("\r\n");
+  const event = (uid: string, dtstart: string, extra = "") =>
+    ["BEGIN:VEVENT", `UID:${uid}`, dtstart, "SUMMARY:x", extra, "END:VEVENT"].filter(Boolean).join("\r\n");
+  const starts = (text: string) => upcomingEvents(text, window).map((e) => [e.id, e.start]);
+
+  it("reads a named but undefined IANA zone, never the server's zone", () => {
+    expect(starts(cal(event("a", "DTSTART;TZID=Europe/Paris:20261005T100000")))).toEqual([["a", "2026-10-05T08:00:00.000Z"]]);
+    expect(starts(cal(event("w", "DTSTART;TZID=Romance Standard Time:20261005T100000")))).toEqual([
+      ["w", "2026-10-05T08:00:00.000Z"],
+    ]);
+  });
+
+  it("reads floating times in the calendar's zone (X-WR-TIMEZONE), else UTC", () => {
+    expect(starts(cal(event("f", "DTSTART:20261005T100000"), "X-WR-TIMEZONE:Africa/Dakar"))).toEqual([
+      ["f", "2026-10-05T10:00:00.000Z"],
+    ]);
+    expect(starts(cal(event("f", "DTSTART:20261005T100000"), "X-WR-TIMEZONE:Europe/Paris"))).toEqual([
+      ["f", "2026-10-05T08:00:00.000Z"],
+    ]);
+    expect(starts(cal(event("f", "DTSTART:20261005T100000")))).toEqual([["f", "2026-10-05T10:00:00.000Z"]]);
+  });
+
+  it("one calendar's zone definitions never change how another is read", () => {
+    const bogus = [
+      "BEGIN:VTIMEZONE",
+      "TZID:Europe/Paris",
+      "BEGIN:STANDARD",
+      "DTSTART:19700101T000000",
+      "TZOFFSETFROM:+0500",
+      "TZOFFSETTO:+0500",
+      "END:STANDARD",
+      "END:VTIMEZONE",
+    ].join("\r\n");
+    expect(starts(cal(`${bogus}\r\n${event("evil", "DTSTART;TZID=Europe/Paris:20261005T100000")}`))).toEqual([
+      ["evil", "2026-10-05T05:00:00.000Z"],
+    ]);
+    expect(starts(cal(event("a", "DTSTART;TZID=Europe/Paris:20261005T100000")))).toEqual([["a", "2026-10-05T08:00:00.000Z"]]);
+  });
+
+  it("leaves rooms and shared calendars out of the people", () => {
+    const text = cal(
+      event(
+        "r",
+        "DTSTART:20261005T100000Z",
+        [
+          "ATTENDEE;CUTYPE=ROOM:mailto:salle@boxhero.test",
+          "ATTENDEE:mailto:c_123@resource.calendar.google.com",
+          "ATTENDEE:mailto:team@group.calendar.google.com",
+          "ATTENDEE:mailto:ana@gmail.com",
+        ].join("\r\n"),
+      ),
+    );
+    expect(upcomingEvents(text, window)[0].people).toEqual(["ana@gmail.com"]);
+  });
+});

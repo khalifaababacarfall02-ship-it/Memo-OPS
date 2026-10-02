@@ -166,7 +166,9 @@ more than that.
 **First sign-in.** Until `profiles.onboarded_at` is set, `requireViewer()` sends the person to
 `/welcome`: their name, and their pôle when nobody gave them one (admins may skip it), saved by
 `public.complete_onboarding(name, team)` (security definer: the only way a non-admin joins a team,
-and only once). Then they land on `/?team=<their pôle>` (or where they were going).
+and only once — `onboarded_at` is not writable through the API: signed-in users may update only
+`full_name`, `is_admin`, `asana_user_gid` of `profiles`, column by column). Removing an invitation
+also removes the address from `private.allowed_emails` (trigger). Then they land on `/?team=<their pôle>` (or where they were going).
 
 ## 3. Auth flow
 
@@ -302,7 +304,9 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   Calendar "Secret address in iCal format", a Proton Calendar share link, Outlook, iCloud). The server
   fetches it — only those providers' hosts, https, redirects checked, 8 s timeout, 8 MB cap, 2 min
   in-memory cache — and lists the next 14 days (ical.js: repeating events, moved / cancelled
-  occurrences, the file's time zones; all-day events left out). "Prepare the memo" calls
+  occurrences, the file's own VTIMEZONEs; a zone it names without defining — or a floating time,
+read in the calendar's `X-WR-TIMEZONE` — goes through `Intl`, never the server's zone, and nothing
+is registered globally; rooms and shared calendars are not people; all-day events left out). "Prepare the memo" calls
   `public.create_call_memo()` (security invoker: memo + call + people in one transaction, as the
   caller; the caller's memo for the same event is reopened instead). Tests only:
   `CALENDAR_TEST_HOSTS` allows a local mock.

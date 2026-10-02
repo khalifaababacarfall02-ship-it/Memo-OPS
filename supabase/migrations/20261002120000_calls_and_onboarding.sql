@@ -4,10 +4,12 @@
 --
 -- 1. public.invitations: who may sign in, managed by admins on /team (BoxHero uses
 --    personal Gmail / Proton addresses, so there is no company domain to allow). An
---    invitation may carry a pôle: the person starts in it.
+--    invitation may carry a pôle: the person starts in it. The addresses of
+--    private.allowed_emails move here (removing one on /team removes both).
 -- 2. public.can_sign_in(email): the login form's check, before any email is sent.
 -- 3. profiles.onboarded_at + public.complete_onboarding(): the first sign-in asks the
---    person's name, and their pôle when nobody gave them one.
+--    person's name, and their pôle when nobody gave them one. Existing profiles count as
+--    set up; profiles columns become writable one by one (onboarded_at is not).
 -- 4. public.memo_participants: the people of the call, by email (they may not have
 --    signed in yet). They read the memo, like its decision maker.
 -- 5. public.memo_calls: when the call is, and the calendar event it comes from.
@@ -81,6 +83,24 @@ as $$
      );
 $$;
 
+-- Removing an invitation also removes the same address from the older SQL-only list
+-- (its rows were copied above), so "Remove" on /team really closes the door.
+create or replace function private.invitation_removed()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from private.allowed_emails e where e.email = old.email;
+  return old;
+end;
+$$;
+
+create trigger invitations_removed
+  after delete on public.invitations
+  for each row execute function private.invitation_removed();
+
 -- A new user also starts in the pôle of their invitation.
 create or replace function private.handle_new_auth_user()
 returns trigger
@@ -138,11 +158,21 @@ $$;
 
 alter table public.profiles add column if not exists onboarded_at timestamptz;
 comment on column public.profiles.onboarded_at is
-  'Set by complete_onboarding() at the first sign-in (name, pôle). Null: /welcome is shown.';
+  'Set by complete_onboarding() at the first sign-in (name, pôle). Null: /welcome is shown. Not writable through the API.';
+
+-- People who were already here are set up (their pôles are whatever admins gave them).
+update public.profiles set onboarded_at = created_at where onboarded_at is null;
+
+-- Signed-in users update only these columns of profiles (profiles_guard decides who may
+-- change which). onboarded_at is written by complete_onboarding() alone: resetting it
+-- would let someone with no pôle pick one again.
+revoke update on table public.profiles from authenticated;
+grant update (full_name, is_admin, asana_user_gid) on table public.profiles to authenticated;
 
 -- The first sign-in: the person's name and, when they are in no pôle yet, the one they
 -- choose (admins may skip it: they see every pôle). Once done it does nothing: later
--- changes are the name on /team and the pôles an admin sets there.
+-- changes are the name on /team and the pôles an admin sets there. The profile row is
+-- locked, so two calls at once cannot each add a pôle.
 create or replace function public.complete_onboarding(p_full_name text, p_team public.team_key default null)
 returns void
 language plpgsql
@@ -157,7 +187,7 @@ begin
   if v_uid is null then
     raise exception 'not signed in' using errcode = '42501';
   end if;
-  select * into v_profile from public.profiles where id = v_uid;
+  select * into v_profile from public.profiles where id = v_uid for update;
   if not found then
     raise exception 'not signed in' using errcode = '42501';
   end if;
@@ -452,6 +482,7 @@ $$;
 -- =====================================================================
 
 revoke all on function
+  private.invitation_removed(),
   private.my_call_memos(),
   private.can_manage_call(uuid),
   private.memo_participants_guard(),

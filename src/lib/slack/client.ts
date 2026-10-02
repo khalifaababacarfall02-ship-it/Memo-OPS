@@ -53,7 +53,14 @@ function token(): string {
   return t;
 }
 
-async function call(method: string, init: { query?: Record<string, string>; json?: unknown }): Promise<Record<string, unknown>> {
+/** Slack asked to slow down (429): one retry after Retry-After, if it is short. */
+const MAX_RETRY_WAIT_S = 5;
+
+async function call(
+  method: string,
+  init: { query?: Record<string, string>; json?: unknown },
+  retried = false,
+): Promise<Record<string, unknown>> {
   const url = new URL(`${apiBase()}/${method}`);
   for (const [k, v] of Object.entries(init.query ?? {})) url.searchParams.set(k, v);
   let res: Response;
@@ -72,7 +79,14 @@ async function call(method: string, init: { query?: Record<string, string>; json
     if (e instanceof SlackError) throw e;
     throw new SlackError(e instanceof Error && e.name === "TimeoutError" ? "timeout" : "network");
   }
-  if (res.status === 429) throw new SlackError("ratelimited", 429);
+  if (res.status === 429) {
+    const wait = Number(res.headers.get("retry-after") ?? "1");
+    if (!retried && Number.isFinite(wait) && wait >= 0 && wait <= MAX_RETRY_WAIT_S) {
+      await new Promise((r) => setTimeout(r, Math.max(wait, 1) * 1000));
+      return call(method, init, true);
+    }
+    throw new SlackError("ratelimited", 429);
+  }
   const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (!res.ok) throw new SlackError(typeof body?.error === "string" ? body.error : "http", res.status);
   if (!body || typeof body !== "object") throw new SlackError("invalid", res.status);

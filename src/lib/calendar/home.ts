@@ -33,6 +33,42 @@ type CallRow = { memo_id: string; starts_at: string | null; event_id: string | n
 
 const SELECT = "memo_id, starts_at, event_id, memos!inner(id, title, status, author_id, decider_id, memo_participants(email))";
 
+/** Parsed events per link, a short while (parsing a big calendar costs more than reading it). */
+const PARSED_MS = 2 * 60_000;
+const parsed = new Map<string, { at: number; events: CalendarEvent[] }>();
+
+async function calendarEvents(link: string, from: Date, to: Date): Promise<CalendarEvent[]> {
+  const hit = parsed.get(link);
+  if (hit && Date.now() - hit.at < PARSED_MS) return hit.events;
+  const events = upcomingEvents(await fetchCalendar(link), { from, to, max: 40 }).filter((e) => !e.allDay);
+  if (parsed.size >= 100) parsed.delete(parsed.keys().next().value as string);
+  parsed.set(link, { at: Date.now(), events });
+  return events;
+}
+
+/**
+ * Event ids that can go in a PostgREST `in.(…)` filter (quotes and backslashes are not
+ * escaped there), in groups that keep the request URL short.
+ */
+export function eventIdBatches(ids: readonly string[], maxChars = 3000): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let size = 0;
+  for (const id of new Set(ids)) {
+    if (/["\\]/.test(id) || id.length > 500) continue;
+    const cost = encodeURIComponent(id).length + 3;
+    if (batch.length && size + cost > maxChars) {
+      batches.push(batch);
+      batch = [];
+      size = 0;
+    }
+    batch.push(id);
+    size += cost;
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
 export async function loadHomeCalls(viewer: Pick<Viewer, "id" | "email">, now = new Date()): Promise<HomeCalls> {
   const supabase = await createClient();
   const from = new Date(now.getTime() - STARTED_GRACE_MS);
@@ -46,7 +82,7 @@ export async function loadHomeCalls(viewer: Pick<Viewer, "id" | "email">, now = 
   let calendarDown = false;
   if (link) {
     try {
-      events = upcomingEvents(await fetchCalendar(link), { from, to, max: 40 }).filter((e) => !e.allDay);
+      events = await calendarEvents(link, from, to);
     } catch (e) {
       calendarDown = true;
       if (!(e instanceof CalendarFetchError || e instanceof IcsError)) console.error("[calendar] read failed", e);
@@ -64,8 +100,8 @@ export async function loadHomeCalls(viewer: Pick<Viewer, "id" | "email">, now = 
   if (windowRes.error) throw new Error(`Could not load the calls (${windowRes.error.code}): ${windowRes.error.message}`);
   const rows = [...((windowRes.data ?? []) as unknown as CallRow[])];
   const ids = [...new Set(events.map((e) => e.id))];
-  for (let i = 0; i < ids.length; i += 50) {
-    const res = await supabase.from("memo_calls").select(SELECT).in("event_id", ids.slice(i, i + 50));
+  for (const batch of eventIdBatches(ids)) {
+    const res = await supabase.from("memo_calls").select(SELECT).in("event_id", batch);
     if (res.error) throw new Error(`Could not load the calls (${res.error.code}): ${res.error.message}`);
     rows.push(...((res.data ?? []) as unknown as CallRow[]));
   }

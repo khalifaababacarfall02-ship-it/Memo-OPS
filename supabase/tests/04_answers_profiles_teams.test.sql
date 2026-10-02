@@ -240,22 +240,23 @@ select throws_ok(
 );
 select throws_ok(
   $$ update public.profiles set email = 'pgtap.boss@boxhero.test' where id = bxh_test.uid('author') $$,
-  '42501', 'profile email follows the sign-in email and cannot be changed',
-  'the profile email cannot be edited'
+  '42501', null,
+  'the profile email cannot be edited (column not writable; the guard refuses it too)'
 );
 select throws_ok(
   $$ update public.profiles set id = bxh_test.uid('admin2') where id = bxh_test.uid('author') $$,
-  '42501', 'profile id cannot be changed',
-  'the profile id cannot be edited'
+  '42501', null,
+  'the profile id cannot be edited (column not writable; the guard refuses it too)'
 );
-select lives_ok(
+select throws_ok(
   $$ update public.profiles set created_at = '2020-01-01', updated_at = '2020-01-01' where id = bxh_test.uid('author') $$,
-  'writing the timestamps is accepted…'
+  '42501', null,
+  'the timestamps are not writable…'
 );
 select results_eq(
-  $$ select created_at < '2021-01-01', updated_at = now() from public.profiles where id = bxh_test.uid('author') $$,
-  $$ values (false, true) $$,
-  '…but created_at is kept and updated_at is set to now'
+  $$ select created_at < '2021-01-01' from public.profiles where id = bxh_test.uid('author') $$,
+  $$ values (false) $$,
+  '…and created_at is kept'
 );
 select throws_ok(
   $$ insert into public.profiles (id, email) values (gen_random_uuid(), 'pgtap.ghost@boxhero.test') $$,

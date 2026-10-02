@@ -52,11 +52,15 @@ export function CallPanel({
   // Dates are shown in the browser's time zone: only once mounted (no hydration mismatch).
   const mounted = useMounted();
 
-  async function saveWhen(value: string) {
+  async function saveWhen(field: HTMLInputElement) {
     if (!memoId || !canManage) return;
+    const value = field.value;
+    // A half-typed date reads as "" too: only an emptied field clears the date.
+    if (!value && field.validity.badInput) return;
     const iso = value ? fromLocalInput(value) : null;
     if (value && !iso) return;
-    if (iso === startsAt) return;
+    // The database writes "…+00:00", the browser "….000Z": compare instants.
+    if ((iso === null ? null : Date.parse(iso)) === (startsAt === null ? null : Date.parse(startsAt))) return;
     const { error } = await createClient()
       .from("memo_calls")
       .upsert({ memo_id: memoId, starts_at: iso }, { onConflict: "memo_id" })
@@ -144,9 +148,9 @@ export function CallPanel({
           type="datetime-local"
           value={mounted ? when : ""}
           onChange={(e) => setWhen(e.target.value)}
-          onBlur={(e) => void saveWhen(e.target.value)}
+          onBlur={(e) => void saveWhen(e.currentTarget)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void saveWhen(e.currentTarget.value);
+            if (e.key === "Enter") void saveWhen(e.currentTarget);
           }}
         />
       ) : (
