@@ -1,10 +1,11 @@
 "use client";
-// Team pills + Guide button under the hero title (prototype `.poles`).
+// The pôles (prototype `.poles`) + the Guide button, listed in the sidebar with
+// each team's colour (a horizontal row of chips on phones).
 // Used as navigation (list filter, from a Server Component: pass `links`) or
 // as a switch inside a Client Component (pass `onSelect`).
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { type Lang, TEAMS, type Team, ui } from "@/lib/content";
+import { type Lang, TEAMS, type Team, teamColors, ui } from "@/lib/content";
 import { GuideModal } from "./GuideModal";
 
 export type PillKey = Team | "all";
@@ -40,6 +41,11 @@ export function TeamPills({
       <div className="poles" id="poles" role="group" aria-label={u.teamsL}>
         {keys.map((k) => (
           <button key={k} type="button" data-p={k} aria-pressed={k === active} onClick={() => select(k)}>
+            <i
+              className="pdot"
+              aria-hidden="true"
+              style={{ "--tc": k === "all" ? "var(--muted)" : teamColors(k).acc } as React.CSSProperties}
+            />
             {k === "all" ? u.allTeams : u.poles[k]}
           </button>
         ))}

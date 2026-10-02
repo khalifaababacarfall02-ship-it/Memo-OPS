@@ -1,7 +1,10 @@
 import "server-only";
-// Data for "Mes prochains appels" on the home page: the viewer's calendar (if
-// they connected one) and the memos of calls they are in, read through RLS.
+// Data for "Mes prochains appels" on the home page: the viewer's calendar (Google
+// Calendar connected in one click, else a private iCal link such as Proton's) and
+// the memos of calls they are in, read through RLS.
 import type { Viewer } from "@/lib/auth/viewer";
+import { isGoogleEnabled } from "@/lib/google/config";
+import { googleEvents } from "@/lib/google/connection";
 import { isStatus } from "@/lib/memo/model";
 import { createClient } from "@/lib/supabase/server";
 import { CalendarFetchError, fetchCalendar } from "./fetch";
@@ -13,6 +16,14 @@ export const AHEAD_DAYS = 14;
 const STARTED_GRACE_MS = 60 * 60_000;
 
 export interface HomeCalls {
+  /** Where the events come from (null: no calendar connected). */
+  source: "google" | "ics" | null;
+  /** The connected Google address. */
+  googleEmail: string | null;
+  /** Google refuses the stored access now: show "reconnect". */
+  googleBroken: boolean;
+  /** This server can connect Google Calendar (GOOGLE_* configured). */
+  googleEnabled: boolean;
   connected: boolean;
   /** Connected, but the calendar could not be read this time. */
   calendarDown: boolean;
@@ -74,13 +85,20 @@ export async function loadHomeCalls(viewer: Pick<Viewer, "id" | "email">, now = 
   const from = new Date(now.getTime() - STARTED_GRACE_MS);
   const to = new Date(now.getTime() + AHEAD_DAYS * 86_400_000);
 
-  const linkRes = await supabase.from("calendar_links").select("url").maybeSingle();
+  const [google, linkRes] = await Promise.all([
+    googleEvents(supabase, viewer.id, from, to),
+    supabase.from("calendar_links").select("url").maybeSingle(),
+  ]);
   if (linkRes.error) throw new Error(`Could not load the calendar link (${linkRes.error.code}): ${linkRes.error.message}`);
-  const link = linkRes.data?.url ?? null;
+  // Google first; the iCal link only for people without a Google connection.
+  const link = google.email ? null : (linkRes.data?.url ?? null);
 
   let events: CalendarEvent[] = [];
   let calendarDown = false;
-  if (link) {
+  if (google.email) {
+    if (google.events) events = google.events.filter((e) => !e.allDay);
+    else calendarDown = !google.broken;
+  } else if (link) {
     try {
       events = await calendarEvents(link, from, to);
     } catch (e) {
@@ -138,5 +156,14 @@ export async function loadHomeCalls(viewer: Pick<Viewer, "id" | "email">, now = 
     const res = await supabase.from("profiles").select("email, full_name").in("email", emails.slice(0, 200));
     for (const p of res.data ?? []) if (p.full_name.trim()) names[p.email] = p.full_name.trim();
   }
-  return { connected: link !== null, calendarDown, calls, names };
+  return {
+    source: google.email ? "google" : link ? "ics" : null,
+    googleEmail: google.email,
+    googleBroken: google.broken,
+    googleEnabled: isGoogleEnabled(),
+    connected: google.email !== null || link !== null,
+    calendarDown,
+    calls,
+    names,
+  };
 }

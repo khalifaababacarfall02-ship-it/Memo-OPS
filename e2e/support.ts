@@ -1,6 +1,7 @@
 // Helpers for end-to-end tests: create users, give them teams, sign them in
-// without email (service-role generateLink → /auth/confirm?token_hash=…), and
-// clean up. Uses the service-role key, so it only runs in tests.
+// quickly (service-role generateLink → /auth/confirm?token_hash=…, no form, no
+// email), give them a password or an access code, and clean up. Uses the
+// service-role key, so it only runs in tests.
 import type { Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/database.types";
@@ -58,6 +59,34 @@ export async function signIn(page: Page, email: string, next = "/"): Promise<voi
   if (error) throw new Error(`generateLink(${email}): ${error.message}`);
   const token = data.properties.hashed_token;
   await page.goto(`/auth/confirm?token_hash=${encodeURIComponent(token)}&type=email&next=${encodeURIComponent(next)}`);
+}
+
+/** Give an existing user a password (as if they had chosen it). */
+export async function setPassword(email: string, password: string): Promise<void> {
+  const a = admin();
+  const { data } = await a.from("profiles").select("id").eq("email", email).single();
+  if (!data) throw new Error(`setPassword: no profile for ${email}`);
+  const { error } = await a.auth.admin.updateUserById(data.id, { password, email_confirm: true });
+  if (error) throw new Error(`setPassword(${email}): ${error.message}`);
+}
+
+const CODE_ADMIN = "e2e-code-admin@boxhero.test";
+const CODE_ADMIN_PASSWORD = "e2e-code-admin-password";
+
+/**
+ * A fresh access code for `email`, issued the way /team does it: by an admin,
+ * through public.issue_access_code (the database keeps only its hash).
+ */
+export async function accessCodeFor(email: string): Promise<string> {
+  await ensureUser(CODE_ADMIN, { fullName: "E2E Code Admin", isAdmin: true, teams: [] });
+  await setPassword(CODE_ADMIN, CODE_ADMIN_PASSWORD);
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const client = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error: e } = await client.auth.signInWithPassword({ email: CODE_ADMIN, password: CODE_ADMIN_PASSWORD });
+  if (e) throw new Error(`accessCodeFor: admin sign-in: ${e.message}`);
+  const { data, error } = await client.rpc("issue_access_code", { p_email: email });
+  if (error || typeof data !== "string") throw new Error(`issue_access_code(${email}): ${error?.message}`);
+  return data;
 }
 
 /** Delete everything a test user wrote (memos cascade to answers). */

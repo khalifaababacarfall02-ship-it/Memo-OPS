@@ -35,6 +35,11 @@ describe("decideAccess: signed out", () => {
   it("answers 401 on API routes, whatever the method", () => {
     expect(decideAccess(signedOut("/api/asana", "", "POST"))).toEqual({ kind: "unauthorized" });
     expect(decideAccess(signedOut("/api/asana"))).toEqual({ kind: "unauthorized" });
+    // Except the Google Calendar links a person opens in the browser: back to the home page after signing in.
+    expect(decideAccess(signedOut("/api/google/connect"))).toEqual({ kind: "redirect", to: "/login" });
+    expect(decideAccess(signedOut("/api/google/callback", "?code=x&state=y"))).toEqual({ kind: "redirect", to: "/login" });
+    expect(decideAccess(signedOut("/api/google/connect", "", "POST"))).toEqual({ kind: "unauthorized" });
+    expect(decideAccess(signedOut("/api/google/other"))).toEqual({ kind: "unauthorized" });
     expect(decideAccess(signedOut("/api"))).toEqual({ kind: "unauthorized" });
   });
 

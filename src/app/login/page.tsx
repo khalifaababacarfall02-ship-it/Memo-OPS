@@ -1,9 +1,11 @@
-// Sign-in page: one card under the hero, an email field, a magic link.
+// Sign-in page: address + password, or "choose my password" with an access
+// code (?setup=1&email=… opens that form, as in the message admins send).
 // Public (the proxy lets it through and sends signed-in visitors on).
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/login/LoginForm";
 import { SoloStyles } from "@/components/notfound/SoloStyles";
 import { AppFrame } from "@/components/shell/AppFrame";
+import { normalizeEmail } from "@/lib/auth/allowed-email";
 import { safeNext } from "@/lib/auth/redirect";
 import { doc, ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
@@ -21,10 +23,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const lang = await getLang();
   const u = ui(lang);
 
-  // /login?error=auth (link expired or used), ?error=profile (no profile row);
-  // anything else is reported as a failed sending.
+  // /login?error=auth (an old email link, expired or used), ?error=profile (no
+  // profile row); anything else is reported as a generic failure.
   const code = first(params.error);
-  const initialError = !code ? null : code === "auth" ? u.authError : code === "profile" ? u.profileMissing : u.sendError;
+  const initialError = !code ? null : code === "auth" ? u.authError : code === "profile" ? u.profileMissing : u.loginError;
 
   return (
     <AppFrame
@@ -37,23 +39,42 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     >
       <main className="sheet solo-card">
         <SoloStyles />
-        <h2 className="solo-h">{u.loginH}</h2>
         <LoginForm
           next={safeNext(first(params.next))}
-          placeholder={u.emailPh}
+          initialMode={first(params.setup) === "1" ? "setup" : "signIn"}
+          initialEmail={normalizeEmail(first(params.email) ?? "").slice(0, 320)}
           initialError={initialError}
           t={{
+            loginH: u.loginH,
+            setupH: u.setupH,
             loginIntro: u.loginIntro,
+            setupIntro: u.setupIntro,
             emailL: u.emailL,
-            sendLink: u.sendLink,
-            sending: u.sending,
-            linkSent: u.linkSent,
-            linkSentHint: u.linkSentHint,
+            emailPh: u.emailPh,
+            passwordL: u.passwordL,
+            codeL: u.codeL,
+            newPasswordL: u.newPasswordL,
+            confirmPasswordL: u.confirmPasswordL,
+            signIn: u.signIn,
+            signingIn: u.signingIn,
+            setPassword: u.setPassword,
+            settingPassword: u.settingPassword,
+            firstTime: u.firstTime,
+            haveAccount: u.haveAccount,
+            showPassword: u.showPassword,
+            hidePassword: u.hidePassword,
             errors: {
               badEmail: u.badEmail,
-              badDomain: u.badDomain,
+              needPassword: u.needPassword,
+              badCredentials: u.badCredentials,
               rateLimited: u.rateLimited,
-              sendError: u.sendError,
+              loginError: u.loginError,
+              needCode: u.needCode,
+              codeInvalid: u.codeInvalid,
+              codeExpired: u.codeExpired,
+              codeLocked: u.codeLocked,
+              weakPassword: u.weakPassword,
+              mismatch: u.mismatch,
             },
           }}
         />

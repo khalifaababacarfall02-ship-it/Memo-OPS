@@ -7,10 +7,10 @@
 // error.tsx on every page, where it then goes unused ("preloaded using link
 // preload but not used" in the console). This is only sent when a card renders.
 const SOLO_CSS = [
-  ".wrap.solo{grid-template-columns:minmax(0,560px);justify-content:center}",
-  ".sheet.solo-card{padding:32px 36px 36px}",
-  "@media (max-width:600px){.sheet.solo-card{padding:24px 18px 28px}}",
-  ".solo-h{margin:0 0 14px;font-size:30px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase;line-height:1.1}",
+  ".wrap.solo{grid-template-columns:minmax(0,460px);justify-content:center}",
+  ".sheet.solo-card{padding:28px 30px 30px}",
+  "@media (max-width:600px){.sheet.solo-card{padding:22px 18px 24px}}",
+  ".solo-h{margin:0 0 12px;font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.2}",
   ".btn.solo-btn{margin-top:16px}",
   ".solo-card a.btn{text-decoration:none}",
 ].join("");

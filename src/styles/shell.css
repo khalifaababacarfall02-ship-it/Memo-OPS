@@ -1,45 +1,154 @@
-/* Shell additions (not in the prototype): the account pill next to the
-   language switch reuses the `.lang` pill look. */
-.brand-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.acct{display:flex;align-items:center;background:rgba(255,255,255,.12);border-radius:999px;padding:3px}
-.acct form{margin:0;display:flex}
-.acct button,.acct-link{border:0;background:transparent;color:#fff;padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px;text-decoration:none;line-height:1.5}
-.acct button:hover,.acct-link:hover{background:rgba(255,255,255,.14)}
+/* App shell (light design): a sidebar instead of the prototype's big hero, a
+   page header in sentence case, calm cards. Loaded after globals.css (the
+   prototype's memo sheet and PDF export, kept as they were), so the rules
+   below win where they overlap. Team colours still drive the accent. */
 
-/* Dark mode fix: the prototype keeps the light --acc-soft behind light text in
-   the example boxes and the guide's parts, which makes them unreadable. Tint
-   them from the team colour instead. Light mode is unchanged. */
+:root{
+  --bg:#F5F6F8; --side-w:240px;
+  --shadow:0 1px 2px rgba(16,24,40,.05);
+  --r-lg:16px; --r-md:12px; --r-sm:9px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0C1017;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0C1017;--shadow:none}
+body{font-size:15px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ---------- layout ---------- */
+.app.has-side{display:grid;grid-template-columns:var(--side-w) minmax(0,1fr);min-height:100dvh}
+.main{min-width:0;display:flex;flex-direction:column}
+.wrap{max-width:1160px;width:100%;margin:0 auto;padding:0 28px;display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:20px;position:static;z-index:auto}
+.wrap>*{min-width:0}
+.wrap:focus{outline:none}
+@media (max-width:1180px){.wrap{grid-template-columns:minmax(0,1fr)}.rail{position:static}}
+@media (max-width:600px){.wrap{padding:0 14px}}
+
+/* ---------- sidebar ---------- */
+.side{position:sticky;top:0;height:100dvh;overflow-y:auto;display:flex;flex-direction:column;gap:22px;padding:20px 14px 16px;background:var(--paper);border-right:1px solid var(--line)}
+.side-brand{display:flex;align-items:baseline;gap:8px;color:var(--ink);text-decoration:none;padding:4px 10px}
+.side-brand .word{font-weight:800;letter-spacing:.3em;font-size:12px}
+.side-app{font-size:13px;font-weight:600;color:var(--muted)}
+.side-nav{display:flex;flex-direction:column;gap:2px}
+.side-link{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px}
+.side-link svg{width:18px;height:18px;color:var(--muted);flex:none}
+.side-link:hover{background:var(--soft)}
+.side-link[aria-current="page"]{background:var(--soft)}
+.side-link[aria-current="page"] svg{color:var(--acc)}
+.side-sec{display:flex;flex-direction:column;gap:6px}
+.side-h{margin:0;padding:0 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding:12px 10px 0;border-top:1px solid var(--line)}
+
+/* the pôles: a list in the sidebar */
+.side .poles{display:flex;flex-direction:column;gap:1px;flex-wrap:nowrap}
+.side .poles button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--ink);border-radius:var(--r-sm);padding:7px 10px;cursor:pointer;font-weight:500;font-size:14px;text-align:left;backdrop-filter:none}
+.side .poles button:hover{background:var(--soft)}
+.side .poles button[aria-pressed="true"]{background:color-mix(in srgb,var(--acc) 12%,var(--paper));color:var(--ink);font-weight:700;border-color:transparent}
+.pdot{width:9px;height:9px;border-radius:50%;background:var(--tc);flex:none}
+.side .poles .guide{margin:8px 0 0;border:0;color:var(--muted);font-weight:600}
+.side .poles .guide svg{width:16px;height:16px;margin:0}
+
+/* language + account */
+.lang{display:inline-flex;align-self:flex-start;background:var(--soft);border-radius:999px;padding:3px}
+.lang button{border:0;background:transparent;color:var(--muted);padding:5px 12px;border-radius:999px;cursor:pointer;font-weight:600;font-size:12px}
+.lang button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:var(--shadow)}
+.acct{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.acct-mail{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.acct form{margin:0;display:flex;flex:none}
+.acct button{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:5px 10px;border-radius:999px;cursor:pointer;font-weight:600;font-size:12px}
+.acct button:hover{border-color:var(--ink)}
+
+/* single-card pages: a slim top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;max-width:1160px;width:100%;margin:0 auto;padding:18px 28px 0}
+.topbar-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.topbar .acct-mail{display:none}
+@media (max-width:600px){.topbar{padding:14px 14px 0}}
+
+/* phones and tablets: the sidebar becomes a top block, the pôles a row of chips */
+@media (max-width:900px){
+  .app.has-side{display:block}
+  .side{position:static;height:auto;overflow:visible;border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;gap:10px;display:grid;grid-template-columns:auto 1fr;align-items:center}
+  .side-top{grid-column:1}
+  .side-nav{grid-column:2;flex-direction:row;justify-content:flex-end;gap:4px}
+  .side-link{padding:6px 10px;font-size:13px}
+  .side-link svg{display:none}
+  .side-sec{grid-column:1/-1}
+  .side-h{display:none}
+  .side .poles{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:2px;scrollbar-width:none}
+  .side .poles::-webkit-scrollbar{display:none}
+  .side .poles button{width:auto;flex:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px}
+  .side .poles .guide{margin:0}
+  .side-foot{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between;border-top:0;padding:0;margin:0}
+}
+
+/* ---------- page header ---------- */
+.phead{max-width:1160px;width:100%;margin:0 auto;padding:30px 28px 18px}
+.phead h1{margin:0;font-size:clamp(24px,3vw,30px);line-height:1.15;font-weight:800;letter-spacing:-.01em;text-wrap:balance}
+.ph-kicker{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin-bottom:4px}
+.phead p{margin:6px 0 0;color:var(--muted);font-size:15px}
+@media (max-width:600px){.phead{padding:20px 14px 12px}}
+.no-side .phead{text-align:center}
+
+/* ---------- cards, panels, buttons (lighter than the prototype) ---------- */
+.sheet{border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--shadow);padding:32px 36px 40px}
+@media (max-width:600px){.sheet{padding:20px 16px 26px}}
+.rail{top:20px;gap:12px}
+.panel{border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--shadow);padding:16px}
+.panel h3{font-size:14px;margin:0 0 10px}
+.btn{border-radius:var(--r-sm);padding:10px 12px;font-size:14px;font-weight:700}
+.btn + .btn{margin-top:6px}
+.btn svg{width:18px;height:18px}
+.btn small{padding-left:28px;font-size:11.5px}
+.btn.ghost{background:var(--soft)}
+.btn.ghost:hover{background:color-mix(in srgb,var(--ink) 6%,var(--soft))}
+.btn.acc:hover{filter:brightness(.97)}
+.intro{border-radius:var(--r-md);font-size:14px}
+.foot{max-width:1160px;width:100%;margin:28px auto 26px;padding:0 28px;font-size:12px}
+@media (max-width:600px){.foot{padding:0 14px}}
+.toast{border-radius:12px}
+.modal .box{border-radius:var(--r-lg)}
+
+/* the memo sheet: sentence-case section titles, softer fields */
+.sec{border-top-color:var(--line);padding-top:26px;margin-top:24px}
+.sec h2{font-size:22px;font-weight:800;text-transform:lowercase;letter-spacing:0}
+.sec h2::first-letter{text-transform:uppercase}
+.sec .q{font-size:15px;color:var(--muted);font-weight:600}
+.titlefield input{font-size:26px;font-weight:800}
+textarea.field{font-size:17px;border-width:1px}
+.ex{border-radius:var(--r-md)}
+
+/* Dark mode fix: tint the example boxes and the guide's parts from the team colour. */
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]) .ex,
   :root:not([data-theme="light"]) .gparts div{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
+  :root:not([data-theme="light"]) .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 }
 :root[data-theme="dark"] .ex,
 :root[data-theme="dark"] .gparts div{background:color-mix(in srgb,var(--acc) 16%,var(--paper))}
-
-/* Phones: the prototype's single column (`1fr`) lets a long unbreakable title
-   in the rail widen the whole page. minmax(0,1fr) + min-width:0 keep it inside. */
-@media (max-width:920px){.wrap{grid-template-columns:minmax(0,1fr)}}
-.wrap>*{min-width:0}
+:root[data-theme="dark"] .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 
 /* Skip link: hidden until focused. */
-.skip{position:absolute;left:12px;top:-60px;z-index:70;background:#fff;color:var(--night);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none}
+.skip{position:absolute;left:12px;top:-60px;z-index:70;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 .skip:focus{top:calc(12px + env(safe-area-inset-top,0px))}
-.wrap:focus{outline:none}
 
-/* Phones: the account pill leaves the hero (the prototype's brand row only has the
-   wordmark and the language switch) and sits above the footer, on the page colours. */
-.acct-foot{display:none}
-@media (max-width:600px){
-  .hero .acct{display:none}
-  .acct-foot{display:flex;max-width:1180px;margin:-36px auto 14px;padding:0 20px}
-  .acct-foot .acct{background:var(--soft)}
-  .acct-foot .acct button,.acct-foot .acct-link{color:var(--ink)}
-  .acct-foot .acct button:hover,.acct-foot .acct-link:hover{background:var(--line)}
+/* the sidebar's paper runs the whole height of long pages */
+@media (min-width:901px){
+  .app.has-side{background:linear-gradient(90deg,var(--paper) calc(var(--side-w) - 1px),var(--line) calc(var(--side-w) - 1px),var(--line) var(--side-w),var(--bg) var(--side-w))}
+  .side{border-right:0}
 }
 
-/* Dark mode: the prototype's night-coloured primary button vanishes on the dark
-   card (1.07:1); outline it so it stays visible. Light mode is unchanged. */
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-}
-:root[data-theme="dark"] .btn.primary{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+/* page header: title on the left, actions on the right */
+.phead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+.ph-text{min-width:0}
+.ph-acts{display:flex;gap:8px;flex-wrap:wrap}
+.ph-acts .btn{width:auto;margin:0;text-decoration:none}
+.no-side .phead{justify-content:center}
+/* the list's "new memo": in the header only where the rail falls below the list */
+@media (min-width:1181px){.ph-new{display:none!important}}
+
+/* placeholders: plain and quiet outside the memo's writing fields */
+.login-form input::placeholder,.tm-inv-field input::placeholder,.call input::placeholder,.cal-form input::placeholder,.lst-search input::placeholder{font-style:normal;color:var(--muted);opacity:.75}
+
+/* team page: one column (the sidebar holds the navigation) */
+.wrap.tm-wrap{grid-template-columns:minmax(0,880px)}
+
+/* single-card pages: the footer sits under the card */
+.no-side .foot{text-align:center}

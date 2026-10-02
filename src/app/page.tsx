@@ -67,12 +67,25 @@ export default async function ListPage({ searchParams }: { searchParams: Promise
       tag={heroTag(lang, coverTeam)}
       pills={<TeamPills lang={lang} active={filters.team ?? "all"} includeAll links={pillLinks} />}
       viewer={viewer}
+      nav="home"
+      actions={
+        newTeam && (
+          <Link className="btn acc ph-new" href={`/memos/new?team=${newTeam}`} id="bNewTop">
+            <span className="l">+ {u.nw}</span>
+          </Link>
+        )
+      }
       wrapClassName="lst-wrap"
     >
       <main className="sheet lst-sheet">
         <RefreshOnRestore token={crypto.randomUUID()} />
         <Suspense fallback={<UpcomingCallsFallback lang={lang} />}>
-          <UpcomingCalls lang={lang} viewer={viewer} team={filters.team} />
+          <UpcomingCalls
+            lang={lang}
+            viewer={viewer}
+            team={filters.team}
+            notice={typeof params.google === "string" ? params.google : undefined}
+          />
         </Suspense>
         <ListSearch filters={filters} label={u.searchL} placeholder={u.searchPh} />
         <div className="lst-bar">

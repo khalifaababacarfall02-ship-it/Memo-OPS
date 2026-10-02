@@ -3,7 +3,6 @@
 // rights, and invite people (InviteSection). RLS and the guard triggers are the
 // real gate (see TeamSheet).
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { TeamPills } from "@/components/shell/TeamPills";
 import { InviteSection, type PendingInvitation } from "@/components/team/InviteSection";
@@ -51,6 +50,8 @@ export default async function TeamPage() {
       title={[u.teamH, "BoxHero"]}
       tag={doc(lang).tag}
       viewer={viewer}
+      nav="team"
+      wrapClassName="tm-wrap"
       pills={<TeamPills lang={lang} active={null} includeAll links={PILL_LINKS} />}
     >
       <main className="sheet" id="sheet">
@@ -58,6 +59,7 @@ export default async function TeamPage() {
           <p>{u.teamIntro}</p>
           {!viewer.isAdmin && viewer.teams.length === 0 && <p>{u.noTeam}</p>}
         </div>
+        {viewer.isAdmin && <InviteSection lang={lang} pending={pending} members={people.map((p) => p.email)} />}
         <TeamSheet
           lang={lang}
           viewerId={viewer.id}
@@ -65,29 +67,7 @@ export default async function TeamPage() {
           canEdit={viewer.isAdmin}
           people={people}
         />
-        {viewer.isAdmin && <InviteSection lang={lang} pending={pending} members={people.map((p) => p.email)} />}
       </main>
-      <aside className="rail">
-        <div className="panel">
-          <Link href="/" className="btn ghost tm-back">
-            <span className="l">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M19 12H5" />
-                <path d="m12 19-7-7 7-7" />
-              </svg>
-              {u.backToList}
-            </span>
-          </Link>
-        </div>
-      </aside>
     </AppFrame>
   );
 }

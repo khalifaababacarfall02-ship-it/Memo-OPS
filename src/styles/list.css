@@ -11,16 +11,19 @@
 @media (max-width:920px){.wrap.lst-wrap{grid-template-columns:minmax(0,1fr)}}
 .lst-wrap>*{min-width:0}
 
-/* search: the .titlefield look, with a magnifier */
-.titlefield.lst-search{margin:4px 0 0}
+/* search: a quiet field with a magnifier */
+.titlefield.lst-search{margin:6px 0 0}
+.titlefield.lst-search label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.lst-search input[type=search]{border:1px solid var(--line)!important;border-radius:var(--r-md);background:var(--paper);font-size:15px!important;font-weight:500!important;padding:10px 12px 10px 38px!important}
+.lst-search input[type=search]:focus{border-color:var(--acc)!important;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent)}
+.lst-field svg{left:12px!important;width:18px!important;height:18px!important;margin-top:-9px!important}
 .lst-field{position:relative}
 .lst-field svg{position:absolute;left:2px;top:50%;width:22px;height:22px;margin-top:-13px;color:var(--muted);pointer-events:none}
 .lst-search input[type=search]{padding-left:34px;-webkit-appearance:none;appearance:none;border-radius:0}
 .lst-search input[type=search]::-webkit-search-decoration{-webkit-appearance:none}
 .lst-search input[type=search]::-webkit-search-cancel-button{cursor:pointer}
 .lst-search[aria-busy="true"] svg{color:var(--acc)}
-/* phones: a little smaller so the whole placeholder fits */
-@media (max-width:600px){.lst-search input[type=search]{font-size:20px}}
+
 
 /* status tabs + count */
 .lst-bar{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:18px 0 16px}

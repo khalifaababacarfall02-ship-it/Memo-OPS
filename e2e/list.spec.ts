@@ -2,6 +2,7 @@
 // FR/EN, phone width. Data is seeded with the service role and tagged with a
 // per-run token so other tests' memos in the shared database never interfere.
 import { type Page, expect, test } from "@playwright/test";
+import { teamColors } from "../src/lib/content";
 import type { Json } from "../src/lib/database.types";
 import { type TestUser, admin, cleanupUser, ensureUser, seedMemo, signIn } from "./support";
 
@@ -129,8 +130,9 @@ test("team pills filter and keep the status and the search", async ({ page }) =>
   await expectRows(page, ["m6"]);
   await expect(page.locator(".poles button[data-p=growth]")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#hTitle")).toHaveText(/Les mémos\s*Growth/i);
-  // The hero takes the team's cover and colours.
-  await expect(page.locator("#heroImg")).toHaveAttribute("src", /growth/);
+  // The page takes the team's colours.
+  const acc = () => page.evaluate(() => getComputedStyle(document.querySelector(".app")!).getPropertyValue("--acc").trim());
+  await expect.poll(acc).toBe(teamColors("growth").acc);
   // New memo / example open in a team they can write in: not Growth (not a member), their own.
   await expect(page.locator("#bNew")).toHaveAttribute("href", "/memos/new?team=ops");
   await expect(page.locator("#bExample")).toHaveAttribute("href", "/memos/new?team=ops&example=1");
@@ -316,7 +318,7 @@ test("unknown pages: the app's 404 with the way back", async ({ page }) => {
   // Not about a memo: any URL.
   await expect(page.locator(".solo-card .intro")).toHaveText("Cette page n’existe pas.");
   await expect(page).toHaveTitle(/^Cette page n’existe pas( · Mémo BoxHero)?$/);
-  await expect(page.locator(".hero .acct button")).toHaveText("Se déconnecter");
+  await expect(page.locator(".acct button")).toHaveText("Se déconnecter");
   await page.locator(".lang button[data-l=en]").click();
   await expect(page.locator(".solo-card .intro")).toHaveText("This page doesn’t exist.");
   await page.getByRole("link", { name: "Back to memos" }).click();

@@ -304,6 +304,41 @@ export type Database = {
           },
         ];
       };
+      google_connections: {
+        Row: {
+          user_id: string;
+          google_email: string;
+          refresh_token: string;
+          scope: string;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          google_email: string;
+          refresh_token: string;
+          scope?: string;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          google_email?: string;
+          refresh_token?: string;
+          scope?: string;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "google_connections_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -316,6 +351,14 @@ export type Database = {
       complete_onboarding: {
         Args: { p_full_name: string; p_team?: Database["public"]["Enums"]["team_key"] | null };
         Returns: undefined;
+      };
+      issue_access_code: {
+        Args: { p_email: string };
+        Returns: string;
+      };
+      set_password_with_code: {
+        Args: { p_email: string; p_code: string; p_password: string };
+        Returns: string;
       };
       create_call_memo: {
         Args: {

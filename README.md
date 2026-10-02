@@ -5,22 +5,23 @@
 who decides, and get their answers in the app.
 
 Next.js 16 (App Router, TypeScript) on **Vercel** · **Supabase** (Postgres,
-magic-link Auth for invited people only, Row Level Security). Memos are for calls:
-the people of the call read the memo before it, get it on **Slack**, and everyone
-sees their next calls from their **calendar** (Google or Proton) on the home page.
-The design is the original prototype's, unchanged. How it works:
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Auth with address + password for invited people only, Row Level Security). Memos
+are for calls: the people of the call read the memo before it, get it on **Slack**,
+and everyone sees their next calls from their **calendar** on the home page
+(Google Calendar in one click, or Proton/Outlook by link). The memo sheet and its
+exports are the original prototype's; the app around it is lighter (a sidebar,
+calm cards). How it works: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## What's where
 
 | | |
 |---|---|
 | `content/boxhero.json` | **Every text** (FR + EN), the examples, the guide, team colours and cover images. Edit it to change copy — no component changes needed. |
-| `public/covers/` | Team cover images (hero + PDF cover). |
+| `public/covers/` | Team cover images (PDF cover). |
 | `src/app/` | Pages: `/` next calls + list, `/memos/new`, `/memos/[id]`, `/team`, `/welcome` (first sign-in), `/login`. |
 | `slack/manifest.json` | The Slack app to install (sends memos by direct message). |
 | `supabase/migrations/` | Database schema, RLS policies, workflow rules. |
-| `supabase/templates/` | The sign-in emails. |
+| `supabase/templates/` | Supabase Auth's emails (unused by the app, which sends none; kept for links requested straight from the Auth API). |
 
 Statuses: **Brouillon / Draft → À décider / To decide → Décidé / Decided**, and
 **Archivé / Archived**. The author writes and sends for decision; the decision
@@ -44,10 +45,10 @@ cp .env.example .env.local        # then paste the URL and publishable/anon key 
 npm run dev                       # http://localhost:3000
 ```
 
-Sign in with any `@boxhero.test` address (the local seed allows that domain;
-`matteo@boxhero.test` and `khalifa@boxhero.test` are admins). The first sign-in
-asks for a name and a pôle. The email arrives
-in Mailpit: http://127.0.0.1:54324.
+Sign in: on `/login`, *Première connexion ou mot de passe oublié ?*, address
+`khalifa@boxhero.test` (or `matteo@boxhero.test`, both admins), access code
+`LOCAL-DEV` (from the local seed), then choose a password. The first sign-in asks
+for a name and a pôle. Other people: invite them on `/team`, which gives their code.
 
 ## Tests
 
@@ -73,28 +74,20 @@ tests, build and the database tests on every pull request.
    npx supabase link --project-ref <project-ref>
    npx supabase db push
    ```
-3. **Before anyone signs in**, in *SQL Editor*, invite the first admin and make
-   them admin (lower case). Everyone else is then invited from `/team` in the app.
+3. **Before anyone signs in**, in *SQL Editor*, invite the first admin, make
+   them admin and give them a first access code (lower-case address; the code is
+   8 letters or digits you pick, valid 7 days, used once). Everyone else is then
+   invited from `/team` in the app, which gives their code.
    ```sql
    insert into public.invitations (email) values ('<khalifa-email>') on conflict do nothing;
    insert into private.bootstrap_admins (email) values ('<khalifa-email>') on conflict do nothing;
+   insert into private.access_codes (email, code_hash, expires_at)
+   values ('<khalifa-email>', extensions.crypt('<CODE1234>', extensions.gen_salt('bf', 8)), now() + interval '7 days')
+   on conflict (email) do update set code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0;
    ```
-4. *Authentication → URL Configuration*
-   - Site URL: `https://<production-domain>`
-   - Redirect URLs: `https://<production-domain>/auth/confirm`,
-     `https://*-<vercel-team-slug>.vercel.app/auth/confirm` (preview deployments),
-     `http://localhost:3000/auth/confirm`
-5. *Authentication → Emails → SMTP Settings*: set up a sender. Supabase's
-   built-in one sends **2 emails per hour for the whole project**: not enough for
-   a team. With a Gmail account: create an app password (Google Account →
-   Security → 2-Step Verification → App passwords), then host `smtp.gmail.com`,
-   port `465`, user and sender = that Gmail address, password = the app password.
-   Then review *Rate Limits*.
-6. *Authentication → Emails → Templates*: paste `supabase/templates/magic_link.html`
-   into **Magic Link** and `supabase/templates/confirmation.html` into **Confirm signup**
-   (subjects as in `supabase/config.toml`). Both links are
-   `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`, so a link works on any device
-   (with the default template, it only works in the browser that asked for it).
+   Then on the app: *Première connexion ou mot de passe oublié ?*, the address, the code, a password.
+4. *Authentication → URL Configuration*: Site URL `https://<production-domain>`.
+   No email is sent by the app: no SMTP or template to set up.
 
 ### 2. Vercel
 
@@ -106,18 +99,21 @@ tests, build and the database tests on every pull request.
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase *Project Settings → API* URL |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the publishable key (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
-   | `NEXT_PUBLIC_SITE_URL` | optional, production URL |
+   | `NEXT_PUBLIC_SITE_URL` | production URL (needed for Google Calendar) |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_TOKEN_KEY` | optional: Google Calendar in one click (see below) |
    | `SLACK_BOT_TOKEN` | optional: the Slack app's bot token (see below) |
    | `ASANA_ACCESS_TOKEN`, `ASANA_PROJECT_GID` | phase 2, optional (see below) |
 
    No secret is exposed to the browser: the publishable key is public by design
    and the data is protected by RLS. Never add the service-role key.
-3. Deploy, then sign in with your BoxHero email.
+3. Deploy, then sign in with your address and the access code of step 1.3.
 
 ### Day to day
 
-- **Add someone**: an admin invites their email (Gmail, Proton…) on `/team`, with their pôle or not;
-  they sign in at the app's address with it. Admin rights: tick *Admin* on `/team` once they signed in.
+- **Add someone**: an admin invites their email (Gmail, Proton…) on `/team`, with their pôle or not,
+  and sends them the message shown (link + one-time access code, valid 7 days); they choose
+  their password with it. Admin rights: tick *Admin* on `/team` once they signed in.
+- **Forgotten password**: an admin clicks *Nouveau code* next to the person on `/team` and sends it.
 - **Change texts, examples, colours**: edit `content/boxhero.json` (keep FR and EN keys in sync — a test checks it).
 - **Database changes**: add a new file in `supabase/migrations/`, test with `npm run db:test`, deploy with `npx supabase db push`.
 
@@ -138,11 +134,35 @@ People are found on Slack by the email they use in the app.
 ## Calendar on the home page
 
 *Mes prochains appels* lists the next 14 days of the person's calendar and the
-memos of calls they are in; *Prepare the memo* creates the memo of an event with
-its title, date and attendees. Each person connects their own calendar once
-(*Connecter mon agenda*): Google Calendar's *Secret address in iCal format*, or a
-Proton Calendar share link. The link stays private (only its owner and the server
-read it).
+memos of calls they are in, with *Rejoindre* for the video link; *Prepare the
+memo* creates the memo of an event with its title, date and attendees. Each
+person connects their own calendar once:
+
+- **Connecter Google Agenda**: one click, Google asks which account and to allow
+  *see your calendar events* (read only), done. The server keeps a refresh token,
+  encrypted with `GOOGLE_TOKEN_KEY`; *Déconnecter* revokes it at Google.
+- **Autre agenda** (Proton, Outlook…): the calendar's private share link. It stays
+  private (only its owner and the server read it).
+
+### Google Calendar: set up once (Google Cloud console)
+
+1. https://console.cloud.google.com → create a project (e.g. *BoxHero Memo*).
+2. *APIs & Services → Library* → **Google Calendar API** → *Enable*.
+3. *Google Auth Platform* (OAuth consent screen) → *Get started*: app name *Mémo BoxHero*,
+   support email, audience **External**, contact email → *Create*.
+   *Data access* → *Add or remove scopes* → `.../auth/calendar.events.readonly` → *Save*.
+   *Audience* → **Publish app** (*In production*; while *Testing*, Google stops the
+   access after 7 days and only lists test users).
+4. *Clients* → *Create client* → **Web application**; *Authorized redirect URIs*:
+   `https://<production-domain>/api/google/callback` → *Create*; copy the client ID
+   and the client secret.
+5. Vercel: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_TOKEN_KEY`
+   (`openssl rand -base64 32`) and `NEXT_PUBLIC_SITE_URL=https://<production-domain>`,
+   then redeploy.
+
+Until Google reviews the app (only needed above 100 people), its screen first says
+*Google hasn't verified this app*: *Advanced* → *Go to Mémo BoxHero*. It is shown
+once per person.
 
 ## Phase 2: Send to Asana
 

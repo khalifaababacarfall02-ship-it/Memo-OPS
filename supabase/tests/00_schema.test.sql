@@ -9,7 +9,7 @@ begin
   end if;
 end
 $$;
-select plan(73);
+select plan(74);
 
 -- ---------- extensions and types ----------
 select has_extension('extensions', 'pg_trgm', 'pg_trgm lives in schema extensions');
@@ -20,9 +20,11 @@ select enum_has_labels('public', 'memo_status', array['draft', 'to_decide', 'dec
 
 -- ---------- tables ----------
 select tables_are('public',
-  array['profiles', 'team_members', 'memos', 'memo_answers', 'invitations', 'memo_participants', 'memo_calls', 'calendar_links'],
-  'public has exactly the eight app tables');
-select tables_are('private', array['allowed_email_domains', 'allowed_emails', 'bootstrap_admins'], 'private has the three configuration tables');
+  array['profiles', 'team_members', 'memos', 'memo_answers', 'invitations', 'memo_participants', 'memo_calls',
+        'calendar_links', 'google_connections'],
+  'public has exactly the nine app tables');
+select tables_are('private', array['allowed_email_domains', 'allowed_emails', 'bootstrap_admins', 'access_codes'],
+  'private has the configuration tables and the access codes');
 select columns_are('public', 'memos',
   array['id', 'team', 'lang', 'title', 'author_id', 'decider_id', 'status', 'content', 'asana_task_gid',
         'search_text', 'decided_at', 'created_at', 'updated_at'],
@@ -47,6 +49,7 @@ select results_eq(
      where contype = 'f' and connamespace = 'public'::regnamespace order by 1 $$,
   array[
     'calendar_links.calendar_links_user_id_fkey',
+    'google_connections.google_connections_user_id_fkey',
     'invitations.invitations_invited_by_fkey',
     'memo_answers.memo_answers_answered_by_fkey',
     'memo_answers.memo_answers_memo_id_fkey',
@@ -65,6 +68,7 @@ select results_eq(
      where contype = 'f' and connamespace = 'public'::regnamespace order by 1 $$,
   array[
     'calendar_links_user_id_fkey c',
+    'google_connections_user_id_fkey c',
     'invitations_invited_by_fkey n',
     'memo_answers_answered_by_fkey r',
     'memo_answers_memo_id_fkey c',
@@ -109,6 +113,7 @@ select policies_are('public', 'memo_participants',
 select policies_are('public', 'memo_calls',
   array['memo_calls_select', 'memo_calls_insert', 'memo_calls_update', 'memo_calls_delete'], 'memo_calls policies');
 select policies_are('public', 'calendar_links', array['calendar_links_own'], 'calendar_links policy (owner only)');
+select policies_are('public', 'google_connections', array['google_connections_own'], 'google_connections policy (owner only)');
 select is_empty(
   $$ select policyname from pg_policies where schemaname in ('public', 'private') and roles <> '{authenticated}' $$,
   'every policy is for authenticated only'
@@ -126,7 +131,8 @@ select table_privs_are('public', 'team_members', 'anon', array[]::text[], 'anon:
 select table_privs_are('public', 'memos', 'anon', array[]::text[], 'anon: nothing on memos');
 select table_privs_are('public', 'memo_answers', 'anon', array[]::text[], 'anon: nothing on memo_answers');
 select is_empty(
-  $$ select t from unnest(array['public.invitations', 'public.memo_participants', 'public.memo_calls', 'public.calendar_links']) t
+  $$ select t from unnest(array['public.invitations', 'public.memo_participants', 'public.memo_calls', 'public.calendar_links',
+                                'public.google_connections']) t
      where has_table_privilege('anon', t, 'SELECT, INSERT, UPDATE, DELETE') $$,
   'anon: nothing on invitations, participants, calls, calendar links'
 );
@@ -170,14 +176,14 @@ select is_empty(
 );
 select results_eq(
   $$ select p.proname::text collate "default" from pg_proc p where p.pronamespace = 'public'::regnamespace order by 1 $$,
-  array['can_sign_in', 'complete_onboarding', 'create_call_memo'],
-  'public has exactly the three API functions'
+  array['can_sign_in', 'complete_onboarding', 'create_call_memo', 'issue_access_code', 'set_password_with_code'],
+  'public has exactly the five API functions'
 );
 select results_eq(
   $$ select p.proname::text collate "default" from pg_proc p
      where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1 $$,
-  array['can_sign_in'],
-  'anon may only call can_sign_in()'
+  array['set_password_with_code'],
+  'anon may only call set_password_with_code()'
 );
 select is_definer('public', 'can_sign_in', array['text'], 'can_sign_in() is security definer (reads private lists)');
 select isnt_definer('public', 'create_call_memo',

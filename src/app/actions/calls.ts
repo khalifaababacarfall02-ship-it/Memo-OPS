@@ -15,6 +15,10 @@ import { getLang } from "@/lib/i18n";
 import { canCreateIn } from "@/lib/memo/editor/types";
 import { blankContent } from "@/lib/memo/model";
 import { createClient } from "@/lib/supabase/server";
+import { googleConfig } from "@/lib/google/config";
+import { forgetGoogleToken } from "@/lib/google/connection";
+import { decryptToken } from "@/lib/google/crypto";
+import { revokeToken } from "@/lib/google/oauth";
 
 export type CalendarLinkState =
   | { status: "idle" }
@@ -58,6 +62,21 @@ export async function removeCalendarLink(): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("calendar_links").delete().eq("user_id", viewer.id);
   if (error) throw new Error(`Could not remove the calendar link (${error.code})`);
+  refresh();
+}
+
+/** Disconnects Google Calendar: the stored access is revoked at Google, then deleted. */
+export async function disconnectGoogle(): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer) redirect(loginPath("/"));
+  const supabase = await createClient();
+  const { data } = await supabase.from("google_connections").select("refresh_token").maybeSingle();
+  const cfg = googleConfig();
+  const token = data && cfg ? decryptToken(data.refresh_token, cfg.tokenKey) : null;
+  if (cfg && token) await revokeToken(cfg, token);
+  const { error } = await supabase.from("google_connections").delete().eq("user_id", viewer.id);
+  if (error) throw new Error(`Could not disconnect Google (${error.code})`);
+  forgetGoogleToken(viewer.id);
   refresh();
 }
 

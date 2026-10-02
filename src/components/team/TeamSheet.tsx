@@ -8,8 +8,9 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useToast } from "@/components/shell/Toast";
-import { type Lang, TEAMS, type Team, teamColors, ui } from "@/lib/content";
+import { type Lang, TEAMS, type Team, fmt, teamColors, ui } from "@/lib/content";
 import { createClient } from "@/lib/supabase/client";
+import { AccessCodeDialog, type IssuedCode, issueAccessCode } from "./AccessCode";
 import {
   NAME_MAX,
   type Person,
@@ -45,6 +46,17 @@ export function TeamSheet({
   const [people, setPeople] = useState(initialPeople);
   // One write at a time per checkbox: a second click waits for the first answer.
   const pending = useRef(new Set<string>());
+  // Forgotten password: an admin gives the person a new access code.
+  const [issued, setIssued] = useState<IssuedCode | null>(null);
+
+  async function newCode(p: Person) {
+    const code = await issueAccessCode(p.email);
+    if (!code) {
+      toast(u.codeFailed);
+      return;
+    }
+    setIssued({ email: p.email, who: displayName(p), code });
+  }
 
   async function run(key: string, apply: (on: boolean) => void, on: boolean, write: () => Promise<WriteErrorKey | null>) {
     if (!canEdit || pending.current.has(key)) return false;
@@ -148,6 +160,16 @@ export function TeamSheet({
                       </span>
                       {named && <span className="tm-mail">{p.email}</span>}
                       {p.teams.length === 0 && <span className="tm-none">{u.noTeamYet}</span>}
+                      {canEdit && (
+                        <button
+                          type="button"
+                          className="tm-code"
+                          aria-label={fmt(u.newCodeL, { who: displayName(p) })}
+                          onClick={() => void newCode(p)}
+                        >
+                          {u.newCode}
+                        </button>
+                      )}
                     </th>
                     {TEAMS.map((t) => (
                       <td key={t}>
@@ -182,6 +204,7 @@ export function TeamSheet({
           </table>
         </div>
       </section>
+      <AccessCodeDialog lang={lang} issued={issued} onClose={() => setIssued(null)} />
     </>
   );
 }

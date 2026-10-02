@@ -3,11 +3,14 @@
 // Proton), so each person is invited by email, optionally straight into a pôle.
 // The list shows the invitations of people who have not signed in yet. Writes go
 // through the browser client: RLS lets only admins touch public.invitations.
+// Each invitation comes with a one-time access code (AccessCodeDialog) that the
+// person uses to choose their password; "Nouveau code" gives another one.
 import { useState, useSyncExternalStore } from "react";
 import { useToast } from "@/components/shell/Toast";
 import { type Lang, MEMO_TEAMS, type Team, fmt, isTeam, teamColors, ui } from "@/lib/content";
 import { isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
 import { createClient } from "@/lib/supabase/client";
+import { AccessCodeDialog, type IssuedCode, issueAccessCode } from "./AccessCode";
 import { writeErrorKey } from "./team-logic";
 
 export interface PendingInvitation {
@@ -35,6 +38,7 @@ export function InviteSection({
   const [team, setTeam] = useState<Team | "">("");
   const [busy, setBusy] = useState(false);
   const [invalid, setInvalid] = useState(false);
+  const [issued, setIssued] = useState<IssuedCode | null>(null);
   // The address people sign in at (this deployment), for the intro text.
   const site = useSyncExternalStore(noSubscribe, () => window.location.host, () => "");
 
@@ -68,11 +72,21 @@ export function InviteSection({
       setEmail("");
       setTeam("");
       toast(u.invited);
+      await giveCode(value);
     } catch {
       toast(u.saveError);
     } finally {
       setBusy(false);
     }
+  }
+
+  async function giveCode(address: string) {
+    const code = await issueAccessCode(address);
+    if (!code) {
+      toast(u.codeFailed);
+      return;
+    }
+    setIssued({ email: address, who: address, code });
   }
 
   async function remove(p: PendingInvitation) {
@@ -153,6 +167,14 @@ export function InviteSection({
               )}
               <button
                 type="button"
+                className="tm-inv-x tm-inv-code"
+                aria-label={fmt(u.newCodeL, { who: p.email })}
+                onClick={() => void giveCode(p.email)}
+              >
+                {u.newCode}
+              </button>
+              <button
+                type="button"
                 className="tm-inv-x"
                 aria-label={fmt(u.inviteRemoveL, { email: p.email })}
                 onClick={() => void remove(p)}
@@ -163,6 +185,7 @@ export function InviteSection({
           ))}
         </ul>
       )}
+      <AccessCodeDialog lang={lang} issued={issued} onClose={() => setIssued(null)} />
     </section>
   );
 }

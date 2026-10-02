@@ -1,66 +1,76 @@
 "use server";
-// Login form action (used with useActionState): checks the address (well formed,
-// and invited: public.can_sign_in), then asks Supabase to email a magic link that
-// lands on /auth/confirm.
-import { cookies } from "next/headers";
+// Login page form actions (useActionState). Sign-in is address + password
+// (Supabase Auth). The first time, or after a forgotten password, the person
+// chooses their password with the access code an admin gave them
+// (public.set_password_with_code), and is signed in at once. No email is sent.
+import { redirect } from "next/navigation";
 import { isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
-import { type LoginErrorCode, loginErrorCode, redactEmails } from "@/lib/auth/login-error";
-import { CONFIRM_PATH, NEXT_COOKIE, NEXT_COOKIE_MAX_AGE, safeNext } from "@/lib/auth/redirect";
-import { getRequestOrigin } from "@/lib/auth/site-url";
+import {
+  type SetupErrorCode,
+  type SignInErrorCode,
+  passwordProblem,
+  redactEmails,
+  setupStatusCode,
+  signInErrorCode,
+} from "@/lib/auth/login-error";
+import { safeNext } from "@/lib/auth/redirect";
 import { createClient } from "@/lib/supabase/server";
 
-/** Codes match the login strings in content/boxhero.json (linkSent, badEmail, badDomain, rateLimited, sendError). */
-export type LoginState =
-  | { status: "idle" }
-  | { status: "sent"; email: string }
-  | { status: "error"; code: LoginErrorCode; email: string };
+export type SignInState = { status: "idle" } | { status: "error"; code: SignInErrorCode; email: string };
+export type SetupState = { status: "idle" } | { status: "error"; code: SetupErrorCode; email: string; accessCode: string };
 
-export async function sendMagicLink(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const raw = formData.get("email");
-  // What the visitor typed, trimmed, so the form can show it again.
-  const typed = typeof raw === "string" ? raw.trim().slice(0, 320) : "";
+const text = (v: FormDataEntryValue | null, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+
+export async function signIn(_prev: SignInState, formData: FormData): Promise<SignInState> {
+  const typed = text(formData.get("email"), 320).trim();
   const email = normalizeEmail(typed);
-  const fail = (code: LoginErrorCode): LoginState => ({ status: "error", code, email: typed });
-
+  const password = text(formData.get("password"), 200);
+  const fail = (code: SignInErrorCode): SignInState => ({ status: "error", code, email: typed });
   if (!isValidEmail(email)) return fail("badEmail");
+  if (!password) return fail("needPassword");
 
   const supabase = await createClient();
-  // Invited (or already has an account). The database refuses anyone else anyway
-  // (trigger on auth.users); asking first gives a clear message and sends nothing.
-  const { data: allowed, error: checkError } = await supabase.rpc("can_sign_in", { p_email: email });
-  if (checkError) {
-    console.error("[login] can_sign_in failed", { code: checkError.code, message: redactEmails(checkError.message) });
-    return fail("sendError");
-  }
-  if (allowed !== true) return fail("badDomain");
-
-  // The emailed link cannot carry `next` (the templates append ?token_hash=… to
-  // the redirect URL), so /auth/confirm reads it from this cookie.
-  (await cookies()).set(NEXT_COOKIE, safeNext(formData.get("next")), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: NEXT_COOKIE_MAX_AGE,
-  });
-
-  const origin = await getRequestOrigin();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${origin}${CONFIRM_PATH}`, shouldCreateUser: true },
-  });
-
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    const code = loginErrorCode(error);
-    if (code === "sendError") {
-      console.error("[login] signInWithOtp failed", {
-        name: error.name,
-        status: error.status,
-        code: error.code,
-        message: redactEmails(error.message),
-      });
+    const code = signInErrorCode(error);
+    if (code === "loginError") {
+      console.error("[login] signInWithPassword failed", { status: error.status, code: error.code, message: redactEmails(error.message) });
     }
     return fail(code);
   }
-  return { status: "sent", email };
+  redirect(safeNext(formData.get("next")));
+}
+
+export async function setPasswordWithCode(_prev: SetupState, formData: FormData): Promise<SetupState> {
+  const typed = text(formData.get("email"), 320).trim();
+  const email = normalizeEmail(typed);
+  const accessCode = text(formData.get("code"), 40).trim();
+  const password = text(formData.get("password"), 200);
+  const confirm = text(formData.get("confirm"), 200);
+  const fail = (code: SetupErrorCode): SetupState => ({ status: "error", code, email: typed, accessCode });
+  if (!isValidEmail(email)) return fail("badEmail");
+  if (!accessCode) return fail("needCode");
+  const weak = passwordProblem(password);
+  if (weak) return fail(weak);
+  if (password !== confirm) return fail("mismatch");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_password_with_code", {
+    p_email: email,
+    p_code: accessCode,
+    p_password: password,
+  });
+  if (error) {
+    console.error("[login] set_password_with_code failed", { code: error.code, message: redactEmails(error.message) });
+    return fail("loginError");
+  }
+  const problem = setupStatusCode(data);
+  if (problem) return fail(problem);
+
+  const signedIn = await supabase.auth.signInWithPassword({ email, password });
+  if (signedIn.error) {
+    console.error("[login] sign-in after setup failed", { status: signedIn.error.status, code: signedIn.error.code });
+    return fail(signInErrorCode(signedIn.error) === "rateLimited" ? "rateLimited" : "loginError");
+  }
+  redirect(safeNext(formData.get("next")));
 }

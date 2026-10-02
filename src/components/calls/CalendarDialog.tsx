@@ -1,6 +1,6 @@
 "use client";
-// "Connecter ton agenda": where to find the private link in Google Calendar and
-// Proton Calendar, the field, and (once connected) the way to disconnect. The
+// "Autre agenda": where to find the private link in Proton Calendar (and in Google
+// Calendar when the one-click Google connection is not set up), the field, and (once connected) the way to disconnect. The
 // link is checked on the server (allowed host, answers with a calendar) before
 // it is stored; it is never shown to anyone else.
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -15,11 +15,14 @@ export function CalendarDialog({
   lang,
   open,
   connected,
+  withGoogle,
   onClose,
 }: {
   lang: Lang;
   open: boolean;
   connected: boolean;
+  /** Also explain Google Calendar's private link (when "Connecter Google Agenda" is not available). */
+  withGoogle: boolean;
   onClose: () => void;
 }) {
   const u = ui(lang);
@@ -49,15 +52,17 @@ export function CalendarDialog({
         {u.calH}
       </h3>
       <p className="cal-intro">{u.calIntro}</p>
-      <div className="cal-how">
-        <div>
-          <h4>{u.calGoogleH}</h4>
-          <ol>
-            <li>{u.calGoogle1}</li>
-            <li>{u.calGoogle2}</li>
-            <li>{u.calGoogle3}</li>
-          </ol>
-        </div>
+      <div className={withGoogle ? "cal-how" : "cal-how one"}>
+        {withGoogle && (
+          <div>
+            <h4>{u.calGoogleH}</h4>
+            <ol>
+              <li>{u.calGoogle1}</li>
+              <li>{u.calGoogle2}</li>
+              <li>{u.calGoogle3}</li>
+            </ol>
+          </div>
+        )}
         <div>
           <h4>{u.calProtonH}</h4>
           <ol>

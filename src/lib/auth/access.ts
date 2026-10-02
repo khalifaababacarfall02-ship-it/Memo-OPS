@@ -43,6 +43,10 @@ const UNAVAILABLE: AccessDecision = { kind: "unavailable" };
 
 export const isApiPath = (pathname: string): boolean => pathname === "/api" || pathname.startsWith("/api/");
 
+// API routes that a person opens in the browser ("Connecter Google Agenda" and
+// Google's way back): signed out, they lead to the login page like a page does.
+const BROWSER_API: ReadonlySet<string> = new Set(["/api/google/connect", "/api/google/callback"]);
+
 /**
  * A magic link that did not land on /auth/confirm: when the requested redirect
  * is not on Supabase's allow list, the link falls back to the Site URL, e.g.
@@ -81,6 +85,7 @@ export function decideAccess({ pathname, search, method = "GET", hasUser, authDo
   }
 
   if (hasUser) return NEXT;
+  if (isRead && BROWSER_API.has(pathname)) return { kind: "redirect", to: loginPath("/") };
   // Redirecting a POST (a Server Action) to the login page would replay it
   // there; the caller gets a 401 and the next navigation lands on /login.
   if (isApi || !isRead) return UNAUTHORIZED;

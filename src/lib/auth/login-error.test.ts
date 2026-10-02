@@ -1,52 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { loginErrorCode, redactEmails } from "./login-error";
+import { passwordProblem, redactEmails, setupStatusCode, signInErrorCode } from "./login-error";
 
-describe("loginErrorCode", () => {
-  it("maps rate limits", () => {
-    expect(loginErrorCode({ status: 429, code: "over_email_send_rate_limit", message: "email rate limit exceeded" })).toBe(
-      "rateLimited",
+describe("signInErrorCode", () => {
+  it("maps wrong passwords and unknown addresses the same way", () => {
+    expect(signInErrorCode({ status: 400, code: "invalid_credentials", message: "Invalid login credentials" })).toBe(
+      "badCredentials",
     );
-    expect(loginErrorCode({ status: 429, message: "For security purposes, you can only request this after 42 seconds." })).toBe(
-      "rateLimited",
-    );
-    expect(loginErrorCode({ code: "over_request_rate_limit" })).toBe("rateLimited");
+    expect(signInErrorCode({ status: 400, message: "Invalid login credentials" })).toBe("badCredentials");
+    expect(signInErrorCode({ status: 400, code: "email_not_confirmed" })).toBe("badCredentials");
   });
-
-  it("maps the auth.users trigger refusing the domain (as supabase-js reports it)", () => {
-    // AuthRetryableFetchError: supabase-js drops the code of 5xx answers.
-    expect(loginErrorCode({ status: 500, message: "Database error saving new user" })).toBe("badDomain");
-    expect(loginErrorCode({ status: 500, code: "unexpected_failure", message: "Database error saving new user" })).toBe(
-      "badDomain",
-    );
-    expect(loginErrorCode({ status: 500, message: "Database error creating new user" })).toBe("badDomain");
-  });
-
-  it("maps invalid addresses", () => {
-    expect(loginErrorCode({ status: 400, code: "email_address_invalid", message: 'Email address "x@y" is invalid' })).toBe(
+  it("maps rate limits and invalid addresses", () => {
+    expect(signInErrorCode({ status: 429, code: "over_request_rate_limit" })).toBe("rateLimited");
+    expect(signInErrorCode({ code: "validation_failed", message: "Unable to validate email address: invalid format" })).toBe(
       "badEmail",
     );
-    expect(
-      loginErrorCode({ status: 400, code: "validation_failed", message: "Unable to validate email address: invalid format" }),
-    ).toBe("badEmail");
   });
+  it("maps everything else to loginError", () => {
+    expect(signInErrorCode({ status: 500, message: "boom" })).toBe("loginError");
+  });
+});
 
-  it("maps everything else to sendError", () => {
-    expect(loginErrorCode({ status: 500, code: "unexpected_failure", message: "Error sending magic link email" })).toBe(
-      "sendError",
-    );
-    expect(loginErrorCode({ status: 400, code: "email_address_not_authorized", message: "Email address not authorized" })).toBe(
-      "sendError",
-    );
-    expect(loginErrorCode({ status: 422, code: "otp_disabled", message: "Signups not allowed for otp" })).toBe("sendError");
-    expect(loginErrorCode({ status: 0, message: "fetch failed" })).toBe("sendError");
-    expect(loginErrorCode({})).toBe("sendError");
+describe("setupStatusCode", () => {
+  it("maps each status of set_password_with_code", () => {
+    expect(setupStatusCode("ok")).toBeNull();
+    expect(setupStatusCode("invalid")).toBe("codeInvalid");
+    expect(setupStatusCode("expired")).toBe("codeExpired");
+    expect(setupStatusCode("locked")).toBe("codeLocked");
+    expect(setupStatusCode("weak")).toBe("weakPassword");
+    expect(setupStatusCode(null)).toBe("loginError");
+  });
+});
+
+describe("passwordProblem", () => {
+  it("wants 8 characters and at most 72 bytes", () => {
+    expect(passwordProblem("short")).toBe("weakPassword");
+    expect(passwordProblem("long enough")).toBeNull();
+    expect(passwordProblem("é".repeat(37))).toBe("weakPassword");
   });
 });
 
 describe("redactEmails", () => {
-  it("removes addresses from log messages", () => {
-    expect(redactEmails('Email address "Matteo@BoxHero.com" is invalid')).toBe('Email address "<email>" is invalid');
-    expect(redactEmails("a@b.co and c.d+e@f.example.org failed")).toBe("<email> and <email> failed");
-    expect(redactEmails("Error sending magic link email")).toBe("Error sending magic link email");
+  it("hides addresses in log lines", () => {
+    expect(redactEmails('User "ana@gmail.com" not found')).toBe('User "<email>" not found');
   });
 });

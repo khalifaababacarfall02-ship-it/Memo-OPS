@@ -8,7 +8,7 @@ begin
   end if;
 end
 $$;
-select plan(36);
+select plan(37);
 
 create schema bxh_test;
 grant usage on schema bxh_test to public;
@@ -100,8 +100,10 @@ select is(bxh_test.rows($$ delete from public.invitations where email = 'pgtap.g
 call bxh_test.anon();
 select throws_ok($$ select 1 from public.invitations $$, '42501', null, 'anon cannot read invitations');
 
--- ---------- the login form's check ----------
+-- ---------- the sign-in check (as the server; no longer callable through the API) ----------
 call bxh_test.anon();
+select throws_ok($$ select public.can_sign_in('pgtap.guest@gmail.test') $$, '42501', null, 'anon cannot call can_sign_in');
+call bxh_test.logout();
 select ok(public.can_sign_in('pgtap.guest@gmail.test'), 'can_sign_in: an invited address');
 select ok(public.can_sign_in('  PGTAP.Guest@Gmail.TEST '), 'can_sign_in ignores case and spaces');
 select ok(public.can_sign_in('someone@boxhero.test'), 'can_sign_in: an allowed domain');
@@ -133,13 +135,13 @@ insert into public.invitations (email) values ('pgtap.legacy@proton.test');
 call bxh_test.login('admin');
 select is(bxh_test.rows($$ delete from public.invitations where email = 'pgtap.legacy@proton.test' $$), 1,
   'an admin removes an invitation');
-call bxh_test.anon();
+call bxh_test.logout();
 select ok(not public.can_sign_in('pgtap.legacy@proton.test'), 'removed: that address can no longer sign up');
 call bxh_test.logout();
 
 -- An account keeps signing in after its invitation is removed.
 delete from public.invitations where email = 'pgtap.placed@proton.test';
-call bxh_test.anon();
+call bxh_test.logout();
 select ok(public.can_sign_in('pgtap.placed@proton.test'), 'can_sign_in: an existing account');
 
 -- ---------- first sign-in ----------

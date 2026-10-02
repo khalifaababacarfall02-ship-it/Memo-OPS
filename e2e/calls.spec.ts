@@ -20,7 +20,6 @@ const CAL_PORT = Number(process.env.E2E_CAL_MOCK_PORT ?? 0);
 const CAL_TLS = { key: process.env.E2E_CAL_TLS_KEY ?? "", cert: process.env.E2E_CAL_TLS_CERT ?? "" };
 const CAL_URL = `https://localhost:${CAL_PORT}`;
 const SLACK_TOKEN = "xoxb-e2e-dummy";
-const mailApi = process.env.MAIL_API_URL ?? "http://localhost:2501";
 
 const stamp = Date.now().toString(36);
 const ADMIN = "cl-admin@boxhero.test";
@@ -145,18 +144,26 @@ async function pageFor(browser: Browser, email: string, next = "/"): Promise<Pag
   return page;
 }
 
-async function latestLink(to: string, since: number): Promise<string> {
-  const res = await fetch(`${mailApi}/messages/latest?to=${encodeURIComponent(to)}&since=${since}&wait=15000`);
-  expect(res.ok).toBe(true);
-  const message = (await res.json()) as { links: string[] };
-  const link = message.links.find((l) => l.includes("token_hash="));
-  expect(link).toBeTruthy();
-  return link as string;
-}
-
 // ---------- invitations and first sign-in ----------
 
-test("an admin invites people on /team; others do not see the form", async ({ browser }) => {
+const CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{4}-[ABCDEFGHJKMNPQRSTUVWXYZ2-9]{4}$/;
+let invitedCode = "";
+
+/** The access code dialog: checks the code and the ready-to-send message, closes it, returns the code. */
+async function takeCode(page: Page, email: string): Promise<string> {
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const code = (await page.locator("#codeValue").textContent())?.trim() ?? "";
+  expect(code).toMatch(CODE);
+  const message = await page.locator("#codeMessage").inputValue();
+  expect(message).toContain(`/login?setup=1&email=${encodeURIComponent(email)}`);
+  expect(message).toContain(code);
+  await dialog.getByRole("button", { name: fr.codeClose }).click();
+  await expect(dialog).toHaveCount(0);
+  return code;
+}
+
+test("an admin invites people on /team and gets their access code; others do not see the form", async ({ browser }) => {
   const page = await pageFor(browser, ADMIN, "/team");
   await expect(page.getByRole("heading", { name: fr.inviteH })).toBeVisible();
   await expect(page.locator(".tm-hint").first()).toContainText("localhost:3000");
@@ -170,10 +177,14 @@ test("an admin invites people on /team; others do not see the form", async ({ br
   await page.locator("#tmInviteTeam").selectOption("growth");
   await page.locator("#tmInviteBtn").click();
   await expect(page.locator(".toast")).toHaveText(fr.invited);
+  // The access code to send to the person, once (only its hash is stored).
+  invitedCode = await takeCode(page, INVITED);
   await expect(page.locator(`#tmInvites li[data-email="${INVITED}"]`)).toContainText("Growth");
+  await expect(email).toHaveValue("");
 
   await email.fill(FREE);
   await page.locator("#tmInviteBtn").click();
+  await takeCode(page, FREE);
   await expect(page.locator(`#tmInvites li[data-email="${FREE}"]`)).toBeVisible();
 
   // Twice: said, not stored twice.
@@ -188,7 +199,7 @@ test("an admin invites people on /team; others do not see the form", async ({ br
   // Kept after a reload (stored), removable.
   await page.reload();
   await expect(page.locator(`#tmInvites li[data-email="${INVITED}"]`)).toBeVisible();
-  await page.locator(`#tmInvites li[data-email="${FREE}"] button`).click();
+  await page.locator(`#tmInvites li[data-email="${FREE}"]`).getByRole("button", { name: fr.inviteRemove }).click();
   await expect(page.locator(".toast")).toHaveText(fr.inviteRemoved);
   await expect(page.locator(`#tmInvites li[data-email="${FREE}"]`)).toHaveCount(0);
   await page.reload();
@@ -196,25 +207,56 @@ test("an admin invites people on /team; others do not see the form", async ({ br
   // Back for the next test.
   await email.fill(FREE);
   await page.locator("#tmInviteBtn").click();
+  await takeCode(page, FREE);
   await expect(page.locator(`#tmInvites li[data-email="${FREE}"]`)).toBeVisible();
   await page.context().close();
 
   const member = await pageFor(browser, AUTHOR, "/team");
   await expect(member.getByRole("heading", { name: fr.teamH, exact: true })).toBeVisible();
   await expect(member.locator("#tmInviteEmail")).toHaveCount(0);
-  // Not even through the API.
+  await expect(member.locator(".tm-code, .tm-inv-code")).toHaveCount(0);
+  // The invitations are stored (a member cannot list them: see the database tests).
   const { count } = await admin().from("invitations").select("email", { count: "exact", head: true });
   expect(count).toBeGreaterThanOrEqual(2);
   await member.context().close();
 });
 
-test("an invited Gmail address signs in, gives its name and lands in its pôle", async ({ page }) => {
-  await page.goto("/login");
-  const since = Date.now();
-  await page.getByLabel(fr.emailL).fill(INVITED);
-  await page.getByRole("button", { name: fr.sendLink }).click();
-  await expect(page.getByRole("status").filter({ hasText: "C’est envoyé" })).toBeVisible();
-  await page.goto(await latestLink(INVITED, since));
+test("an invited Gmail address chooses its password with the code, gives its name and lands in its pôle", async ({ page }) => {
+  expect(invitedCode).toMatch(CODE);
+  // The link in the admin's message opens "choose my password" with the address filled in.
+  await page.goto(`/login?setup=1&email=${encodeURIComponent(INVITED)}`);
+  await expect(page.getByRole("heading", { name: fr.setupH, exact: true })).toBeVisible();
+  await expect(page.locator("#login-email")).toHaveValue(INVITED);
+  const code = page.locator("#login-code");
+  const pw = page.locator("#login-new-password");
+  const again = page.locator("#login-confirm");
+  const submit = page.locator("#setupSubmit");
+
+  // Checked before anything is sent: a short password, two different ones.
+  await code.fill(invitedCode);
+  await pw.fill("court");
+  await again.fill("court");
+  await submit.click();
+  await expect(page.locator("#login-msg")).toHaveText(fr.weakPassword);
+  await expect(page.locator("#login-email")).toHaveValue(INVITED);
+  await expect(code).toHaveValue(invitedCode);
+  await pw.fill("Nina-mot-de-passe-1");
+  await again.fill("Nina-mot-de-passe-2");
+  await submit.click();
+  await expect(page.locator("#login-msg")).toHaveText(fr.mismatch);
+  // A wrong code is refused (and counted).
+  await code.fill("ABCD-EFGH");
+  await pw.fill("Nina-mot-de-passe-1");
+  await again.fill("Nina-mot-de-passe-1");
+  await submit.click();
+  await expect(page.locator("#login-msg")).toHaveText(fr.codeInvalid);
+
+  // The right one, typed in lower case and without the dash, works.
+  await code.fill(invitedCode.replace("-", "").toLowerCase());
+  await expect(code).toHaveValue(invitedCode.replace("-", ""));
+  await pw.fill("Nina-mot-de-passe-1");
+  await again.fill("Nina-mot-de-passe-1");
+  await submit.click();
 
   await expect(page).toHaveURL(/\/welcome$/);
   await expect(page.getByRole("heading", { name: fr.welcomeH, exact: true })).toBeVisible();
@@ -234,6 +276,21 @@ test("an invited Gmail address signs in, gives its name and lands in its pôle",
   const { data } = await admin().from("profiles").select("full_name, onboarded_at").eq("email", INVITED).single();
   expect(data?.full_name).toBe("Nina Nouvelle");
   expect(data?.onboarded_at).toBeTruthy();
+
+  // Signed out, they come back with their address and password; the code served once.
+  await page.locator(".acct button").click();
+  await expect(page).toHaveURL("/login");
+  await page.locator("#login-email").fill(INVITED);
+  await page.locator("#login-password").fill("Nina-mot-de-passe-1");
+  await page.locator("#loginSubmit").click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.locator(".acct button").click();
+  await page.goto(`/login?setup=1&email=${encodeURIComponent(INVITED)}`);
+  await code.fill(invitedCode);
+  await pw.fill("Autre-mot-de-passe");
+  await again.fill("Autre-mot-de-passe");
+  await submit.click();
+  await expect(page.locator("#login-msg")).toHaveText(fr.codeInvalid);
 });
 
 test("someone invited without a pôle chooses it at the first sign-in", async ({ browser }) => {
@@ -348,7 +405,10 @@ test("connect a calendar, see the next calls, prepare a memo from one", async ({
   await page.locator("#calConnect").click();
   const dialog = page.locator(".calbox");
   await expect(dialog.getByRole("heading", { name: fr.calH })).toBeVisible();
-  await expect(dialog).toContainText("Adresse secrète au format iCal");
+  await expect(dialog).toContainText(fr.calProton2);
+  // Google has its own one-click button (when set up, as in these tests): no iCal steps for it here.
+  await expect(page.locator("#googleConnect")).toBeVisible();
+  await expect(dialog).not.toContainText(fr.calGoogle3);
 
   // Refused: another host; a page that is not a calendar.
   await dialog.locator("#calUrl").fill("https://evil.example.com/cal.ics");
@@ -367,7 +427,7 @@ test("connect a calendar, see the next calls, prepare a memo from one", async ({
 
   const row = page.locator(`#callsList .calls-row[data-key="e:cl-call-${stamp}@e2e"]`);
   await expect(row).toContainText("Point stock e2e");
-  await expect(row).toContainText("avec Gabi Invitée, cl-outside");
+  await expect(row.locator(".calls-names")).toHaveText("Gabi Invitée, cl-outside");
   await expect(page.locator(`#callsList .calls-row[data-key="e:cl-later-${stamp}@e2e"]`)).toContainText("Revue budget e2e");
   // The memo with a call tomorrow is listed too, before them.
   await expect(page.locator("#callsList .calls-row").first()).toHaveAttribute("data-key", `m:${memoId}`);

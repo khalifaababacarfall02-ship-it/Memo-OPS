@@ -5,16 +5,39 @@ import type { Viewer } from "@/lib/auth/viewer";
 import { type HomeCalls, loadHomeCalls } from "@/lib/calendar/home";
 import { type Lang, type Team, ui } from "@/lib/content";
 import { canCreateIn } from "@/lib/memo/editor/types";
-import { CallsList } from "./CallsList";
+import { CallsList, type GoogleNotice } from "./CallsList";
 
-export async function UpcomingCalls({ lang, viewer, team }: { lang: Lang; viewer: Viewer; team: Team | null }) {
+const NOTICES: readonly GoogleNotice[] = ["connected", "denied", "scope", "error", "off"];
+const isNotice = (x: unknown): x is GoogleNotice => typeof x === "string" && (NOTICES as readonly string[]).includes(x);
+
+export async function UpcomingCalls({
+  lang,
+  viewer,
+  team,
+  notice,
+}: {
+  lang: Lang;
+  viewer: Viewer;
+  team: Team | null;
+  /** ?google=… after the Google consent screen. */
+  notice?: string;
+}) {
   let data: HomeCalls;
   try {
     data = await loadHomeCalls(viewer);
   } catch (e) {
     // Never take the memo list down with it: say the calls could not be read.
     console.error("[calls] could not load the next calls", e instanceof Error ? e.message : e);
-    data = { connected: true, calendarDown: true, calls: [], names: {} };
+    data = {
+      source: null,
+      googleEmail: null,
+      googleBroken: false,
+      googleEnabled: false,
+      connected: true,
+      calendarDown: true,
+      calls: [],
+      names: {},
+    };
   }
   const canPrepare = viewer.isAdmin || viewer.teams.length > 0;
   return (
@@ -26,6 +49,11 @@ export async function UpcomingCalls({ lang, viewer, team }: { lang: Lang; viewer
       calendarDown={data.calendarDown}
       canPrepare={canPrepare}
       team={team && canCreateIn(viewer, team) ? team : null}
+      source={data.source}
+      googleEmail={data.googleEmail}
+      googleBroken={data.googleBroken}
+      googleEnabled={data.googleEnabled}
+      notice={isNotice(notice) ? notice : null}
     />
   );
 }

@@ -17,6 +17,8 @@ export interface CalendarEvent {
   allDay: boolean;
   /** Lower-case emails of the attendees and the organizer, without duplicates. */
   people: string[];
+  /** The video call link (Google Meet…), when the calendar gives one. */
+  link?: string;
 }
 
 export interface WindowOptions {
@@ -60,6 +62,15 @@ function peopleOf(vevent: ICAL.Component): string[] {
   const organizer = emailOf(vevent.getFirstPropertyValue("organizer"));
   if (organizer) out.add(organizer);
   return [...out];
+}
+
+/** The video call link: Google's X-GOOGLE-CONFERENCE, else a URL or LOCATION that is one. */
+function linkOf(vevent: ICAL.Component): string | null {
+  for (const name of ["x-google-conference", "url", "location"]) {
+    const v = vevent.getFirstPropertyValue(name);
+    if (typeof v === "string" && /^https:\/\/[^\s]+$/.test(v.trim()) && v.length <= 500) return v.trim();
+  }
+  return null;
 }
 
 const isCancelled = (vevent: ICAL.Component): boolean =>
@@ -184,6 +195,7 @@ export function upcomingEvents(text: string, { from, to, max = 50 }: WindowOptio
     if (e < fromMs || s > toMs) return;
     if (isCancelled(vevent)) return;
     const title = String(vevent.getFirstPropertyValue("summary") ?? "").trim().slice(0, 300);
+    const link = linkOf(vevent);
     events.push({
       id,
       title,
@@ -191,6 +203,7 @@ export function upcomingEvents(text: string, { from, to, max = 50 }: WindowOptio
       end: new Date(e).toISOString(),
       allDay: start.isDate,
       people: peopleOf(vevent),
+      ...(link ? { link } : {}),
     });
   };
 

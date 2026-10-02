@@ -25,10 +25,11 @@ src/lib/memo/clipboard.ts     Rich clipboard copy with manual fallback (client o
 src/lib/supabase/client.ts    Browser client (publishable key, RLS)
 src/lib/supabase/server.ts    Server client (per request, cookies)
 src/lib/supabase/proxy.ts     Session refresh used by src/proxy.ts
-src/lib/auth/*                Allowed email domains, current viewer, safe redirects
+src/lib/auth/*                Email checks, sign-in error messages, current viewer, safe redirects
+src/lib/google/*              Google Calendar: OAuth, encrypted tokens, Calendar API (server only)
 src/lib/i18n.ts               UI language from the `bxh-lang` cookie (server)
 src/lib/database.types.ts     Types for supabase-js (kept in sync with the migrations)
-src/components/shell/*        Hero, team pills, language switch, guide, toast, modal, footer, frame
+src/components/shell/*        Frame (sidebar or top bar, page header), team pills, language switch, account, guide, toast, modal
 src/components/memo/*         Editor (sheet, rail panels), export sheet
 src/components/list/*         List view pieces
 src/components/asana/*        "Send to Asana" (phase 2)
@@ -36,8 +37,8 @@ src/app/…                     Routes (see §4)
 supabase/migrations/*.sql     Schema, RLS, triggers
 supabase/tests/*.sql          pgTAP tests (RLS + workflow), `npm run db:test`
 supabase/seed.sql             Allowed domains / bootstrap admins (edit before first deploy)
-supabase/config.toml          Local Supabase config (auth redirect URLs, email templates)
-supabase/templates/*.html     magic_link.html + confirmation.html (a first sign-in uses "confirmation")
+supabase/config.toml          Local Supabase config
+supabase/templates/*.html     Supabase Auth's emails (the app sends none; kept for links asked straight from the Auth API)
 scripts/db-test.sh            Runs migration + seed + pgTAP on a throwaway Postgres (no Docker)
 tests/unit, src/**/*.test.ts  Vitest unit tests
 e2e/*.spec.ts                 Playwright end-to-end tests (run against a local Supabase)
@@ -58,6 +59,8 @@ is the ad mini memo), `memo_lang` = `fr | en`, `memo_status` = `draft | to_decid
 | `memo_participants` | `memo_id` → memos (cascade), `email`, `added_by`, `created_at`; PK (memo_id, email) — the people of the memo's call (by email: they may not have signed in yet) |
 | `memo_calls` | `memo_id` (PK) → memos (cascade), `starts_at`, `event_id` (calendar event: iCal UID, `\|<original start>` for one occurrence of a repeating event), `updated_at` — kept out of `memos` so it never bumps `memos.updated_at` |
 | `calendar_links` | `user_id` (PK) → profiles (cascade), `url` (https, the person's secret iCal address), `updated_at` |
+| `google_connections` | `user_id` (PK) → profiles (cascade), `google_email`, `refresh_token` (AES-256-GCM with the server's `GOOGLE_TOKEN_KEY`: `v1.<iv>.<tag>.<ciphertext>`), `scope`, `connected_at`, `updated_at` — owner only (admins included cannot read it) |
+| `private.access_codes` | `email` (PK), `code_hash` (bcrypt), `expires_at` (7 days), `attempts` (locked at 5), `created_by` — one pending access code per address; not reachable through the API |
 | `private.allowed_email_domains` | `domain` — who may sign up (not exposed through the API) |
 | `private.allowed_emails` | `email` — single addresses allowed to sign up outside those domains |
 | `private.bootstrap_admins` | `email` — profiles created with these emails get `is_admin = true` (Mattéo, Khalifa) |
@@ -158,10 +161,8 @@ emails that are not invited, not listed in `private.allowed_emails` and whose do
 `private.allowed_email_domains` (fail closed: all empty = nobody can sign up).
 AFTER INSERT creates the `profiles` row (`full_name` from metadata or the email's local part,
 `is_admin` from `private.bootstrap_admins`) and the membership of the invitation's pôle.
-The login form asks `public.can_sign_in(email)` first (callable without a session: yes for an
-invited / allowed address or an existing account) to show a friendly message and send nothing
-otherwise. It answers for one address at a time; that someone is invited is not a secret worth
-more than that.
+`public.can_sign_in(email)` (yes for an invited / allowed address or an existing account) is no
+longer callable through the API: access codes are only given to invited addresses.
 
 **First sign-in.** Until `profiles.onboarded_at` is set, `requireViewer()` sends the person to
 `/welcome`: their name, and their pôle when nobody gave them one (admins may skip it), saved by
@@ -172,32 +173,35 @@ also removes the address from `private.allowed_emails` (trigger). Then they land
 
 ## 3. Auth flow
 
-Email magic link (passwordless), `@supabase/ssr` cookies.
+Address + password (Supabase Auth), `@supabase/ssr` cookies. The app sends no email.
 
-1. `/login` → server action `sendMagicLink` validates the email (`can_sign_in`), stores the wanted path
-   in the httpOnly cookie `bxh-next` (1 h), then
-   `signInWithOtp({ email, options: { emailRedirectTo: <request origin>/auth/confirm } })`.
-   `emailRedirectTo` has **no query string**: the email templates build
-   `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`, and a query in RedirectTo would
-   swallow the token (verified against GoTrue).
-2. `/auth/confirm` verifies `token_hash` with `verifyOtp({ type: "email", token_hash })` — works in
-   any browser, for new users (confirmation template) and existing ones (magic_link template),
-   including PKCE `pkce_…` hashes. It also accepts `?code=` (default template; same browser only).
-   It redirects to `?next` or the `bxh-next` cookie (same-origin paths only), else `/`.
-3. `src/proxy.ts` refreshes the session on every request. Signed-out: GET pages → 307
-   `/login?next=…`; other methods (Server Actions) → 401 text/plain; `/api/*` → 401 JSON. A stray
-   link that lands elsewhere with `?token_hash` (Supabase fell back to the Site URL because the
-   origin was not in the redirect allow list) is forwarded to `/auth/confirm`.
-4. `/login?error=auth` = link expired/used (show `ui.authError`), `/login?error=profile` = session
-   without a profile row (show `ui.profileMissing` and a sign-out button). `/login?error=…` is never
-   bounced (no loops).
+1. **Access codes.** An admin invites an address on `/team`, which calls
+   `public.issue_access_code(email)` (admins only; the address must be invited, on an allowed
+   domain, or already have an account): 8 characters without look-alikes, shown once as
+   `XXXX-XXXX` in a ready-to-send message with the link `/login?setup=1&email=…`; only a bcrypt
+   hash is stored, valid 7 days, locked after 5 wrong tries. *Nouveau code* (pending invitations,
+   and each person on `/team`) issues another one — a forgotten password is the same path.
+2. **Choosing the password** (`/login`, "Première connexion ou mot de passe oublié ?"): server
+   action `setPasswordWithCode` checks the form (8 characters minimum, 72 bytes maximum — bcrypt's
+   limit — and the confirmation), then calls `public.set_password_with_code(email, code, password)`
+   (callable without a session; returns `ok | invalid | expired | locked | weak`, never raises, so a
+   wrong try is counted). It creates the Supabase Auth user the way GoTrue does (confirmed, bcrypt
+   cost 10, an `email` identity) — the `auth.users` triggers still apply: invited address, profile
+   created — or changes the existing user's password, and burns the code. Then it signs in.
+3. **Signing in**: server action `signIn` → `signInWithPassword`, then `redirect(next)` (same-origin
+   paths only). A wrong address and a wrong password get the same message.
+4. `src/proxy.ts` refreshes the session on every request. Signed-out: GET pages → 307
+   `/login?next=…`; other methods (Server Actions) → 401 text/plain; `/api/*` → 401 JSON, except
+   `/api/google/connect` and `/api/google/callback` (opened in the browser) → `/login`.
+5. `/login?error=profile` = session without a profile row (show `ui.profileMissing` and a sign-out
+   button). `/login?error=…` is never bounced (no loops). `/auth/confirm` still verifies an email
+   link someone asked for straight from the Auth API (`?error=auth` when it is expired or used).
    If Supabase Auth is unreachable, the proxy does not treat people as signed out: pages go on (their
    own viewer check shows the error page) and `/api/*` answers 503 `{ error: "unavailable" }`.
-5. `/auth/signout` (POST) signs out this browser only.
+6. `/auth/signout` (POST) signs out this browser only.
 
-Supabase Auth hides the trigger's message when it rejects an address: `signInWithOtp` returns a
-500 "Database error saving new user". The app asks `can_sign_in` first and maps that 500 to
-`badDomain` anyway.
+Sign-in and password changes happen on the server (Server Actions), so Supabase Auth's per-IP
+rate limits count the app's server, not each person: fine for a team, and a reason to keep them.
 
 `getViewer()` (`src/lib/auth/viewer.ts`, request-cached) returns
 `{ id, email, fullName, isAdmin, teams, onboarded }` or `null`; `requireViewer()` redirects to
@@ -207,12 +211,13 @@ Supabase Auth hides the trigger's message when it rejects an address: `signInWit
 
 | route | what |
 |---|---|
-| `/` | List view. On top, "Mes prochains appels" (calendar + memos of calls the viewer is in, in a `<Suspense>`), then the hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
+| `/` | List view. On top, "Mes prochains appels" (calendar + memos of calls the viewer is in, in a `<Suspense>`), then the list; the sidebar's team pills (+ "All") filter it, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
 | `/memos/new?team=…[&example=1]` | Blank (or example) memo in the editor. Nothing is stored until the first edit; then the row is inserted and the editor moves to `/memos/<id>` (`router.replace`, handing over its save session so nothing typed meanwhile is lost). A non-member is sent to their first team; someone with no team sees `ui.noTeam`. |
 | `/memos/[id]` | Editor / reader for one memo (permissions from the workflow rules). |
-| `/team` | Admins: assign teams and admin rights, invite people. Everyone: edit their display name. |
+| `/team` | Admins: invite people (and get their access code), *Nouveau code*, assign teams and admin rights. Everyone: edit their display name. |
 | `/welcome` | First sign-in: name and pôle. |
-| `/login`, `/auth/confirm`, `/auth/signout` | Auth. |
+| `/login`, `/auth/confirm`, `/auth/signout` | Auth (`/login?setup=1&email=…` opens "choose my password"). |
+| `/api/google/connect`, `/api/google/callback` | "Connecter Google Agenda" (see §The call). |
 | `POST /api/asana` | Phase 2: create/update the Asana task (server-side token), see below. |
 | `POST /api/slack` | DM the memo to the people of its call, see below. |
 
@@ -248,8 +253,12 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
 
 ## 5. UI conventions
 
-- Markup keeps the prototype classes (`hero`, `wrap`, `sheet`, `rail`, `panel`, `sec`, `ex`,
+- The memo sheet keeps the prototype classes (`wrap`, `sheet`, `rail`, `panel`, `sec`, `ex`,
   `field`, `row`, `need`, `qrow`, `btn primary|acc|ghost`, `memos`, `toast`, `modal`, `#exp`…).
+  Around it, `AppFrame` draws a sidebar (brand, Accueil / L'équipe, the pôles, language and
+  account) on signed-in pages and a slim top bar on single-card pages; on screens ≤900px the
+  sidebar becomes a top block with the pôles as a row of chips. `src/styles/shell.css` (loaded
+  after the prototype's CSS) holds the lighter look: sentence-case page header, calm cards.
 - Team colours: `teamStyle(team)` on the page wrapper **and** on `document.documentElement`
   (so portals such as the PDF sheet and the toast use them too).
 - UI language: cookie `bxh-lang` (`fr` default). The FR/EN switch sets it and refreshes.
@@ -270,8 +279,7 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   exactly as the prototype loaded it (weights 400–500 + italic 400, optical sizes), so bold in the
   examples is the browser's bold of 500 and lines wrap as in the design.
 - Modals (`src/components/shell/Modal.tsx`) render in `<body>` like the prototype's `#gmodal`/`#modal`
-  and keep Tab inside. On phones (≤600px) the account pill leaves the hero and sits above the footer,
-  so the hero keeps the prototype's brand row.
+  and keep Tab inside.
 - Single-card pages (login, 404, error) share `src/components/notfound/*` (styles via `SoloStyles`).
 - Dark mode: the prototype's example boxes were unreadable in dark mode (light `--acc-soft` behind
   light text); `src/styles/shell.css` tints them from the team colour. Light mode is unchanged.
@@ -282,6 +290,11 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   access goes through RLS. No service-role key in the app.
 - The Asana token (`ASANA_ACCESS_TOKEN`) is read only in server code (`import "server-only"`).
   `ASANA_API_BASE` (tests only) may point the client at a local mock: https, or http to localhost.
+- Google: the client secret and `GOOGLE_TOKEN_KEY` stay on the server; refresh tokens are stored
+  encrypted (AES-256-GCM) and readable only by their owner (RLS); the OAuth state is checked
+  (httpOnly cookie, constant-time compare); the scope is read-only.
+- Passwords are Supabase Auth's (bcrypt); access codes are stored as bcrypt hashes, used once,
+  7 days, 5 tries.
 - Security headers on every route (`next.config.ts`): `frame-ancestors 'none'` / `X-Frame-Options`
   (the decision buttons cannot be clickjacked), nosniff, referrer policy, HSTS, permissions policy.
 - Redirect targets (`next`) are validated as same-origin paths.
@@ -300,8 +313,20 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   (no `SLACK_BOT_TOKEN`: the button stays and says so), `slackAuth` / `slack` 502. The token stays on
   the server. App manifest: `slack/manifest.json` (scopes `chat:write`, `users:read`,
   `users:read.email`). Code: `src/lib/slack/`.
-- **Calendar** (`src/lib/calendar/`): each person saves their calendar's secret iCal address (Google
-  Calendar "Secret address in iCal format", a Proton Calendar share link, Outlook, iCloud). The server
+- **Google Calendar** (`src/lib/google/`, `/api/google/*`): "Connecter Google Agenda" → `connect`
+  sets a random state in an httpOnly cookie and sends the person to Google's consent screen
+  (`openid email calendar.events.readonly`, offline access, their address as login hint) →
+  `callback` checks the state, exchanges the code (client secret on the server), refuses a consent
+  without the calendar box, and stores the refresh token encrypted (`google_connections`, as the
+  person through RLS) → `/?google=connected|denied|scope|error|off` (a one-time notice). The home
+  page then reads the primary calendar's next 14 days (Calendar API v3, `singleEvents`; access
+  tokens cached in memory until they expire); Google refusing the token (revoked) shows "Reconnect".
+  *Déconnecter* revokes the token at Google and deletes the row. Without `GOOGLE_CLIENT_ID` /
+  `GOOGLE_CLIENT_SECRET` / `GOOGLE_TOKEN_KEY` the button is hidden. Tests only: `GOOGLE_AUTH_BASE`,
+  `GOOGLE_TOKEN_BASE`, `GOOGLE_API_BASE` point to a local mock (`e2e/google.spec.ts`).
+- **Other calendars** (`src/lib/calendar/`): each person can instead save their calendar's secret
+  iCal address (a Proton Calendar share link, Outlook, iCloud, or Google's "Secret address in iCal
+  format"); Google's connection wins when both exist. The server
   fetches it — only those providers' hosts, https, redirects checked, 8 s timeout, 8 MB cap, 2 min
   in-memory cache — and lists the next 14 days (ical.js: repeating events, moved / cancelled
   occurrences, the file's own VTIMEZONEs; a zone it names without defining — or a floating time,

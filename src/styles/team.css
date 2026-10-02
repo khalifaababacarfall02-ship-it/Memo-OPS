@@ -67,7 +67,8 @@
 .tm-back{text-decoration:none}
 
 /* invitations (admins): an inline form, then the pending addresses */
-.tm-invite{margin-top:30px}
+.tm-invite{margin-top:0;padding-top:0;border-top:0}
+.tm-invite + .tm-namefield{margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
 .tm-hint{color:var(--muted);font-size:14px;margin:6px 0 0}
 .tm-inv-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-top:14px}
 .tm-inv-field{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;min-width:0}
@@ -85,3 +86,15 @@
 .tm-inv-pole i{width:8px;height:8px;border-radius:50%;background:var(--tc)}
 .tm-inv-x{font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;min-height:32px}
 .tm-inv-x:hover{color:var(--ink);border-color:var(--ink)}
+.tm-code{margin-top:4px;font:inherit;font-size:12px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer}
+.tm-code:hover{color:var(--ink);border-color:var(--ink)}
+
+/* access code dialog */
+.modal .box.codebox{max-width:520px}
+.code-h{margin:0 0 6px;font-size:20px}
+.code-big{margin:6px 0 10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:.08em}
+.code-hint{margin:0 0 10px;color:var(--muted);font-size:14px}
+.modal textarea.code-msg{height:auto;min-height:118px;font-size:14px;line-height:1.45}
+.code-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.code-actions .btn{width:auto;margin:0}
+.intro + .tm-invite{margin-top:26px}

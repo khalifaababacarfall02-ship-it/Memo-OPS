@@ -58,6 +58,29 @@ create table if not exists auth.users (
 );
 alter table auth.users owner to supabase_auth_admin;
 create unique index if not exists users_email_partial_key on auth.users (email) where (is_sso_user = false);
+-- Password sign-in columns (written by public.set_password_with_code like Supabase Auth does).
+alter table auth.users
+  add column if not exists encrypted_password varchar(255),
+  add column if not exists confirmation_token varchar(255),
+  add column if not exists recovery_token varchar(255),
+  add column if not exists email_change_token_new varchar(255),
+  add column if not exists email_change varchar(255),
+  add column if not exists last_sign_in_at timestamptz;
+
+-- Same shape as Supabase's auth.identities (email is generated from identity_data).
+create table if not exists auth.identities (
+  provider_id text not null,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  identity_data jsonb not null,
+  provider text not null,
+  last_sign_in_at timestamptz,
+  created_at timestamptz,
+  updated_at timestamptz,
+  email text generated always as (lower(identity_data ->> 'email')) stored,
+  id uuid not null default gen_random_uuid() primary key,
+  constraint identities_provider_id_provider_unique unique (provider_id, provider)
+);
+alter table auth.identities owner to supabase_auth_admin;
 
 -- Same bodies as Supabase's auth functions: the JWT claims arrive in the
 -- transaction-local setting request.jwt.claims (PostgREST sets it per request).

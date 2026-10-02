@@ -1,18 +1,27 @@
-/* /login only. The card itself (.solo, .solo-card, .solo-h) comes from
-   src/components/notfound/SoloStyles.tsx. */
-
-/* login form: the label of .titlefield, an input like the writing fields */
-.login-form label{display:block;font-size:14px;color:var(--muted);margin:22px 0 6px}
-.login-form input[type=email]{width:100%;border:1.5px solid var(--line);border-radius:var(--r-md);padding:12px 16px;background:var(--paper);font-size:18px}
-.login-form input[type=email]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
+/* /login (and the fields of /welcome): one calm card. The card itself (.solo,
+   .solo-card, .solo-h) comes from src/components/notfound/SoloStyles.tsx. */
+.login-form{display:flex;flex-direction:column}
+.login-form form{display:flex;flex-direction:column;gap:14px}
+.lg-intro{margin:0;color:var(--muted);font-size:15px}
+.lg-field{display:flex;flex-direction:column;gap:6px}
+.lg-field label,.login-form>label{font-size:13px;font-weight:600;color:var(--muted)}
+.login-form input[type=email],.login-form input[type=password],.login-form input[type=text]{width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--r-md);padding:11px 14px;background:var(--paper);font-size:16px}
+.login-form input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 16%,transparent)}
 .login-form input[aria-invalid="true"]{border-color:#C0392B}
-.login-form .btn{margin-top:14px}
+.lg-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}
+.lg-pw{position:relative;display:flex}
+.lg-pw input{padding-right:84px!important}
+.lg-show{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:var(--soft);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.lg-show:hover{color:var(--ink)}
+.login-form .btn.lg-submit{margin-top:4px;align-items:center;text-align:center;padding:12px 16px;font-size:15px}
 .login-form .btn:disabled{opacity:.7;cursor:progress}
+.lg-switch{align-self:center;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px}
+.lg-switch:hover{color:var(--ink)}
 
-/* sent / error messages: the example box look (.ex), without its label */
+/* messages: the example box look (.ex), without its label */
 .login-live:empty{display:none}
-.login-msg{position:relative;margin-top:14px;border-radius:var(--r-md);padding:14px 18px 15px;font-size:15px}
-.login-msg::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--acc)}
+.login-msg{position:relative;margin-top:14px;border-radius:var(--r-md);padding:12px 16px 13px;font-size:14px}
+.login-msg::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--acc)}
 .login-msg p{margin:0}
 .login-msg p + p{margin-top:4px;color:var(--muted)}
 .login-msg.ok{background:var(--acc-soft)}

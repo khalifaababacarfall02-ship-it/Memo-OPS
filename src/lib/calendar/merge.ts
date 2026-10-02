@@ -25,6 +25,8 @@ export interface HomeCall {
   memo: { id: string; title: string; status: MemoStatus } | null;
   /** The calendar event, when the line comes from the calendar ("Prepare the memo" needs it). */
   event: CalendarEvent | null;
+  /** Video call link (Google Meet…). */
+  link: string | null;
 }
 
 /**
@@ -56,6 +58,7 @@ export function mergeCalls(
       people: e.people.filter((p) => p !== me),
       memo: m && { id: m.id, title: m.title, status: m.status },
       event: e,
+      link: e.link ?? null,
     };
   });
   for (const m of live) {
@@ -69,6 +72,7 @@ export function mergeCalls(
       people: [],
       memo: { id: m.id, title: m.title, status: m.status },
       event: null,
+      link: null,
     });
   }
   return lines.sort((a, b) => a.start.localeCompare(b.start) || a.key.localeCompare(b.key)).slice(0, max);
