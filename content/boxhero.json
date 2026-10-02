@@ -1,0 +1,1351 @@
+{
+  "_readme": "BoxHero memo app content. Edit texts, examples, guide, team colours and cover images here; components read everything from this file. In intro and example texts, **bold** is rendered bold and [brackets] in italics. {name}-style tokens are filled in by the app.",
+  "teams": [
+    "ops",
+    "growth",
+    "crea",
+    "sav",
+    "finance",
+    "mini"
+  ],
+  "colors": {
+    "ops": {
+      "acc": "#D9961A",
+      "accSoft": "#FFF4D9",
+      "fill": "#2F5D9A"
+    },
+    "growth": {
+      "acc": "#2E8B6A",
+      "accSoft": "#E8F5EF",
+      "fill": "#2E6B57"
+    },
+    "crea": {
+      "acc": "#7A3FA6",
+      "accSoft": "#F2EAF8",
+      "fill": "#5B3A80"
+    },
+    "sav": {
+      "acc": "#1F77B4",
+      "accSoft": "#E8F3FB",
+      "fill": "#1F5F8E"
+    },
+    "finance": {
+      "acc": "#9A7B1F",
+      "accSoft": "#F8F2DE",
+      "fill": "#6F5A1C"
+    },
+    "mini": {
+      "acc": "#C0503F",
+      "accSoft": "#FCECE9",
+      "fill": "#8E3B30"
+    }
+  },
+  "covers": {
+    "ops": "/covers/ops.jpg",
+    "growth": "/covers/growth.jpg",
+    "crea": "/covers/crea.jpg",
+    "sav": "/covers/sav.jpg",
+    "finance": "/covers/finance.jpg",
+    "mini": "/covers/mini.jpg"
+  },
+  "examples": {
+    "people": {
+      "ops": [
+        "Mattéo",
+        "Khalifa"
+      ],
+      "growth": [
+        "Mattéo",
+        "Ollie"
+      ],
+      "crea": [
+        "Mattéo",
+        "Rainer"
+      ],
+      "sav": [
+        "Mattéo",
+        "Khalifa"
+      ],
+      "finance": [
+        "Mattéo",
+        "Khalifa"
+      ]
+    },
+    "date": {
+      "fr": "29 septembre 2026",
+      "en": "29 September 2026"
+    },
+    "titles": {
+      "fr": {
+        "ops": "Corriger les retours Amazon avant octobre",
+        "growth": "Tester « 5 + 5 » contre « 7 + 7 » avant le Black Friday",
+        "crea": "Brancher l’outil d’analyse des créas cette semaine",
+        "sav": "Mettre en ligne une page « Suivre ma commande » le 15 octobre",
+        "finance": "Contrôler chaque mois les factures Bestfulfill"
+      },
+      "en": {
+        "ops": "Fix Amazon returns before October",
+        "growth": "Test \"5 + 5\" against \"7 + 7\" before Black Friday",
+        "crea": "Plug in the creative analysis tool this week",
+        "sav": "Put a \"Track my order\" page live on 15 October",
+        "finance": "Check Bestfulfill invoices every month"
+      }
+    },
+    "firstStep": {
+      "fr": "Première étape",
+      "en": "First step"
+    },
+    "firstStepDue": {
+      "fr": "2 octobre",
+      "en": "2 October"
+    },
+    "need": {
+      "fr": "Ton accord",
+      "en": "Your go"
+    },
+    "mini": {
+      "fr": {
+        "title": "Le boxer qui ne se troue pas",
+        "author": "Rainer",
+        "meta": [
+          "Rainer",
+          "29 septembre 2026",
+          "2.0",
+          "vidéo"
+        ],
+        "works": "Coût par nouveau client sous 35 $, panier moyen au-dessus de 70 $, après 1 000 $ dépensés"
+      },
+      "en": {
+        "title": "The boxer that doesn’t get holes",
+        "author": "Rainer",
+        "meta": [
+          "Rainer",
+          "29 September 2026",
+          "2.0",
+          "video"
+        ],
+        "works": "Cost per new customer under $35, AOV above $70, after $1,000 spent"
+      }
+    }
+  },
+  "fr": {
+    "doc": {
+      "sig": "© 2026 BoxHero · Tous droits réservés · par Khalifa, COO",
+      "tag": "Pas de mémo, pas de réunion.",
+      "forL": "Préparé pour :",
+      "byL": "Créé par :",
+      "byV": "[Nom] · [date]",
+      "memoTitle": "MÉMO : [la décision, en une ligne]",
+      "intro": [
+        "**À quoi ça sert :** proposer une décision **par écrit, avant la réunion**. Le lecteur doit comprendre en **2 minutes** et pouvoir répondre **oui ou non**.",
+        "**Un mémo par sujet.** Chaque décision importante ou nouvelle idée a son propre mémo. Plusieurs sujets, plusieurs mémos. Les étapes d'un même sujet vont dans « Comment ».",
+        "**Comment faire :** remplis ce mémo ici, clique sur **« Copier pour Asana »**, puis colle-le dans une tâche « MÉMO : ta décision », assignée à la personne qui décide."
+      ],
+      "meta": [
+        [
+          "À",
+          "[qui décide]"
+        ],
+        [
+          "DE",
+          "[qui propose]"
+        ],
+        [
+          "DATE",
+          "[jour mois année]"
+        ],
+        [
+          "OBJET",
+          "[la décision demandée, en une phrase]"
+        ]
+      ],
+      "ex": "Exemple",
+      "fill": "À toi d'écrire",
+      "secs": [
+        [
+          "POURQUOI",
+          "Pourquoi on en parle maintenant ?",
+          "**Pourquoi c'est urgent.** Ce qu'on **perd si on ne fait rien**, et **à partir de quand**.",
+          [
+            "[Le contexte, avec les chiffres. Ce qui se passe si on ne fait rien, et pour quand.]"
+          ]
+        ],
+        [
+          "QUOI",
+          "Le problème",
+          "**Le problème en quelques lignes, avec les chiffres.** Pas encore la solution.",
+          [
+            "[Le problème, clairement. Combien, depuis quand, comparé à quoi.]"
+          ]
+        ],
+        [
+          "COMMENT",
+          "Comment on le règle",
+          "**Ce qu'on a déjà essayé**, **les étapes**, **ce qu'il faut** (argent, personnes, outils), et **ce qui peut bloquer**.",
+          [
+            "[Ce qu'on a déjà essayé.]",
+            "[Les étapes, avec un responsable et une date.]",
+            "[Ce qu'il faut : budget, personnes, outils, accès.]",
+            "[Ce qui peut bloquer, et comment on l'évite.]"
+          ]
+        ],
+        [
+          "MAINTENANT",
+          "Ce que je propose",
+          "**Ce que tu proposes**, **qui fait quoi et pour quand**, **ce que tu attends du lecteur** (un oui, un budget, un accès) et **le résultat attendu**.",
+          null
+        ],
+        [
+          "QUESTIONS",
+          "À trancher",
+          "**Les points que le décideur doit trancher.** Il écrit **sa réponse sous chaque question**.",
+          null
+        ]
+      ],
+      "nowFill": [
+        "[« Je propose de … à partir du [date]. »]"
+      ],
+      "actL": "Actions",
+      "act": "[Action] · Responsable : [nom] · Pour le [date]",
+      "needL": "Ce dont j'ai besoin",
+      "needs": [
+        "[Un oui ou un non, pour le [date]]",
+        "[Budget, accès ou validation]"
+      ],
+      "resL": "Résultat attendu",
+      "res": "[Le chiffre et la date.]",
+      "q": "[Question] → Réponse :",
+      "poles": {
+        "ops": {
+          "name": "Opérations",
+          "ex": [
+            "Les retours Amazon sont à **31 %** depuis juillet, contre **moins de 5 %** sur le site. Le canal fait **2,9 $** de ventes par dollar de pub, mais **on y perd de l'argent**. Sans correction **avant octobre**, on rate le mois où Amazon vend le plus.",
+            "Les retours viennent surtout de **« trop petit »**. L'ancien 1.0 stocké chez Flatfee porte une **étiquette 2 tailles trop grande**, et personne ne sait si Flatfee corrige la taille. Environ **3 700 commandes par trimestre** sont concernées.",
+            "**Déjà essayé :** une carte de taille dans le colis, sans effet mesuré.\n**Étapes :**\n1) Flatfee confirme par écrit la correction de taille, cette semaine ;\n2) on corrige la fiche Amazon avec AMZ Boost ;\n3) on mesure les retours sur 30 jours.\n**Ce qui peut bloquer :** le stock déjà chez Amazon, à réétiqueter.",
+            "**Je propose de lancer la correction lundi.**\nLukas obtient la réponse de Flatfee **le 2 octobre**\nAMZ Boost corrige la fiche **le 6 octobre**\nKhalifa mesure les retours **le 6 novembre**.\n**J'ai besoin de ton accord** pour relancer la pub Amazon.\n**Résultat attendu : retours sous 12 % en novembre.**",
+            "On réétiquette le stock déjà chez Amazon, ou on le laisse s'écouler ? → Réponse :"
+          ]
+        },
+        "growth": {
+          "name": "Growth",
+          "ex": [
+            "Le Black Friday démarre le **20 novembre**. L'offre « 7 achetés + 7 offerts » sur la 2.0 n'a **jamais été testée**. Si elle ne marche pas, on perd **la semaine la plus importante de l'année** ; si elle marche trop, **on manque de stock**.",
+            "Une commande « 7 + 7 » prend **14 pièces**, contre **8** pour le pack actuel. Sur environ **12 700 commandes de 2.0 en novembre**, si 30 à 50 % prennent l'offre, il faut **23 000 à 38 000 pièces de plus**. Avec un « 5 + 5 », il n'en faudrait que **8 000 à 13 000 de plus**.",
+            "**Déjà essayé :** rien, l'offre n'a jamais tourné.\n**Étapes :**\n1) test « 5 + 5 » contre « 7 + 7 » sur 20 % du trafic, du 13 au 26 octobre ;\n2) on compare le panier moyen et le coût par nouveau client ;\n3) on garde le gagnant pour le Black Friday.\n**Ce qui peut bloquer :** le stock de 2.0, à vérifier avec les Opérations.",
+            "**Je propose de lancer le test le 13 octobre.**\nOllie prépare les 2 offres **d'ici le 10 octobre**\nLukas vérifie le stock\ndécision **le 27 octobre**.\n**J'ai besoin de ton accord** sur le test.\n**Résultat attendu :** l'offre du Black Friday choisie **sur des chiffres**.",
+            "Si le « 7 + 7 » gagne mais que le stock ne suit pas, on le limite à combien de commandes ? → Réponse :"
+          ]
+        },
+        "crea": {
+          "name": "Créa",
+          "ex": [
+            "On dépense en pub chaque jour sans savoir **exactement ce qui fait gagner une pub** : le hook, l'angle, le format. En novembre, **tester coûte plus cher** : il faut trouver les gagnantes **en octobre**.",
+            "L'outil d'analyse de Yassine classe **toutes nos pubs selon ce qu'elles rapportent**, élément par élément. Il est **prêt depuis le début de l'année**, mais **personne ne l'utilise** dans la production.",
+            "**Déjà essayé :** l'analyse à la main pendant les revues, trop lente.\n**Étapes :**\n1) Yassine termine l'outil sur **les 3 plus grosses pages** ;\n2) chaque creative strategist le consulte avant d'écrire un mini-mémo ;\n3) on relit ses résultats à la revue du mardi.\n**Ce qui peut bloquer :** les accès aux comptes publicitaires.",
+            "**Je propose de le brancher cette semaine.**\nLukas donne les accès **le 1er octobre**\nYassine livre les 3 pages **le 3 octobre**\npremière revue avec l'outil **le 6 octobre**.\n**J'ai besoin de ton accord** pour que chaque nouveau concept passe par l'outil.\n**Résultat attendu :** plus de pubs gagnantes par semaine **avant le Black Friday**.",
+            "On commence par Meta US seulement, ou Meta US et CO ? → Réponse :"
+          ]
+        },
+        "sav": {
+          "name": "SAV",
+          "ex": [
+            "**28 % des contacts SAV** demandent « où est ma commande ». Chaque ticket coûte du temps et de l'argent, et le Black Friday va **multiplier le volume**. Sans solution **avant novembre**, le SAV sera débordé.",
+            "Le client n'a **pas de page claire** pour suivre son colis sans écrire au SAV. Les colis partent de Chine (**environ 12 jours**) ou des US (**2 jours**), et le client ne sait pas lequel il reçoit.",
+            "**Déjà essayé :** l'email d'expédition, peu lu.\n**Étapes :**\n1) une page « Suivre ma commande » visible sur le site et dans chaque email ;\n2) une réponse automatique qui envoie le lien ;\n3) on mesure la part des tickets « où est ma commande » sur 30 jours.\n**Ce qui peut bloquer :** le suivi des colis partis de Chine se met à jour tard.",
+            "**Je propose de la mettre en ligne le 15 octobre.**\nLe responsable du site configure la page **d'ici le 10 octobre**\nle SAV active la réponse automatique **le 15 octobre**\nbilan **le 15 novembre**.\n**J'ai besoin de ton accord** sur l'outil de suivi.\n**Résultat attendu : moins de 15 % de tickets « où est ma commande » en novembre.**",
+            "On affiche le délai réel sur la page produit, au risque de perdre des ventes ? → Réponse :"
+          ]
+        },
+        "finance": {
+          "name": "Finance",
+          "ex": [
+            "On paie Bestfulfill **à chaque commande**, sans vérifier chaque mois que **les pièces facturées = les pièces vendues**. Un écart de **1 %** sur les paiements du mois, ce sont **des milliers de dollars** perdus sans le savoir.",
+            "Il n'existe **aucun contrôle régulier**. Les écarts (prix des upsells, frais de stockage) ne se voient que **des mois plus tard**, quand ils sont difficiles à récupérer.",
+            "**Déjà essayé :** un contrôle ponctuel, une seule fois.\n**Étapes :**\n1) chaque mois, on compare les pièces vendues sur Shopify aux pièces facturées, par produit ;\n2) on compare les prix facturés à ceux du contrat ;\n3) chaque écart part à Bestfulfill **sous 7 jours**.\n**Ce qui peut bloquer :** retirer les commandes annulées et remboursées pour comparer juste.",
+            "**Je propose de commencer par août.**\nLe comptable fait le contrôle d'août **d'ici le 10 octobre**\nKhalifa valide la méthode\nensuite, chaque mois **avant le 10**.\n**J'ai besoin de ton accord** pour réclamer chaque écart.\n**Résultat attendu :** chaque écart repéré **dans le mois**.",
+            "En dessous de quel montant on ne réclame pas un écart ? → Réponse :"
+          ]
+        }
+      },
+      "mini": {
+        "title": "MINI-MÉMO : [le concept, en une ligne]",
+        "t1": "Le mini-mémo",
+        "t2": "Pub",
+        "tag": "Une idée de pub = une page.",
+        "pole": "Créa",
+        "intro": [
+          "**À quoi ça sert :** proposer **un nouveau concept de pub** en une page, avant de le produire.",
+          "**Un mini-mémo par concept.** Pas pour chaque variation : pour chaque **nouvelle idée de pub**.",
+          "**Comment faire :** remplis ce mini-mémo ici, clique sur **« Copier pour Asana »**, puis colle-le dans une tâche « PUB : ton concept »."
+        ],
+        "meta": [
+          [
+            "DE",
+            "[creative strategist]"
+          ],
+          [
+            "DATE",
+            "[jour mois année]"
+          ],
+          [
+            "PRODUIT",
+            "[1.0 · 2.0 · Nova · Infeel · chaussettes]"
+          ],
+          [
+            "FORMAT",
+            "[vidéo · statique · UGC · VSL]"
+          ]
+        ],
+        "secs": [
+          [
+            "QUOI",
+            "Le concept",
+            "**L'idée en 3 lignes :** l'angle, le hook, la promesse. **À qui** elle parle.",
+            "**Un boxer qui ne se troue pas :** on filme un test de résistance sur la couture, hook « celui-ci a 8 mois ». Pour les hommes de 35 à 55 ans qui ont déjà jeté des boxers troués.",
+            [
+              "[L'angle, le hook, la promesse. À qui ça parle.]"
+            ]
+          ],
+          [
+            "POURQUOI",
+            "Les preuves",
+            "**Ce qui montre que ça peut marcher :** ce que disent les clients, ce qui marche déjà chez nous ou chez un concurrent.",
+            "**« Trous après 3 lavages »** revient dans **60 tickets SAV** depuis juin\nla **garantie anti-trous 6 mois** existe dans nos offres mais n'est **jamais montrée en pub**.",
+            [
+              "[Ce que disent les clients : avis, tickets, commentaires.]",
+              "[Ce qui marche déjà : pub, dépense, résultat.]"
+            ]
+          ],
+          [
+            "COMMENT",
+            "La production",
+            "**Le script**, **ce qu'il faut pour produire**, **les variations**, et **quand c'est prêt**.",
+            "**Hook :** le boxer tiré à deux mains, 3 secondes.\n**Corps :** 8 mois d'usage, couture intacte, la garantie 6 mois.\n**Offre :** pack de 8 en 2.0.\n**Variations :** 3 hooks, 2 formats. Prêt **le 6 octobre**, lancé **le 8**.",
+            [
+              "[Le script : hook, corps, offre, appel à l'action.]",
+              "[Ce qu'il faut : tournage, monteur, voix, produits.]",
+              "[Les variations.]",
+              "[Prêt le [date], lancé le [date].]"
+            ]
+          ],
+          [
+            "MAINTENANT",
+            "Pourquoi cette pub maintenant",
+            "**Pourquoi maintenant** (saison, offre, stock) et **comment on saura si ça marche**, avec des chiffres.",
+            "Octobre, c'est le mois pour trouver les gagnantes avant le Black Friday.\n**Ça marche si :** coût par nouveau client **sous 35 $** et panier moyen **au-dessus de 70 $** après **1 000 $** dépensés.",
+            [
+              "[Pourquoi maintenant.]",
+              "[Ça marche si : coût par nouveau client sous X $, panier moyen au-dessus de Y $, après Z $ dépensés.]"
+            ]
+          ]
+        ]
+      }
+    },
+    "ui": {
+      "poles": {
+        "ops": "Opérations",
+        "growth": "Growth",
+        "crea": "Créa",
+        "sav": "SAV",
+        "finance": "Finance",
+        "mini": "Mini-mémo pub"
+      },
+      "memo": "Le mémo",
+      "mini": "Le mini-mémo",
+      "steps": "Ton mémo",
+      "showEx": "Afficher les exemples",
+      "copy": "Copier pour Asana",
+      "copySub": "à coller dans la tâche",
+      "pdf": "Télécharger en PDF",
+      "pdfSub": "la version designée",
+      "example": "Voir un mémo rempli",
+      "nw": "Nouveau mémo",
+      "rules": "Les règles",
+      "rulesL": [
+        "**Un mémo par sujet.** Plusieurs sujets, plusieurs mémos.",
+        "**1 à 2 pages.** Chaque phrase mérite sa place.",
+        "**Des chiffres, des noms, des dates.**",
+        "**Envoie-le avant la réunion.** La réunion sert à décider."
+      ],
+      "guide": "Guide",
+      "gWhat": "À quoi sert un mémo",
+      "gParts": "Les parties du mémo",
+      "gButtons": "Les boutons",
+      "gB": [
+        [
+          "Copier pour Asana",
+          "Copie le mémo rempli, avec ses titres et ses listes. Crée une tâche Asana « MÉMO : ta décision », assigne-la à la personne qui décide, et colle le mémo dans la description. Si ton navigateur bloque la copie automatique, le texte s’affiche : sélectionne-le et copie-le."
+        ],
+        [
+          "Télécharger en PDF",
+          "Crée la version designée, avec la couverture du pôle, pour l’envoyer ou la joindre à la tâche."
+        ],
+        [
+          "Nouveau mémo",
+          "Crée un mémo vide. Les précédents restent dans « Mes mémos », à droite."
+        ],
+        [
+          "Voir un mémo rempli",
+          "Ouvre un exemple complet du pôle, dans un nouveau mémo, pour voir à quoi ressemble un vrai mémo."
+        ],
+        [
+          "Afficher les exemples",
+          "Montre ou cache l’exemple au-dessus de chaque question."
+        ]
+      ],
+      "gClose": "Fermer le guide",
+      "mine": "Mes mémos",
+      "untitled": "Sans titre",
+      "del": "Supprimer",
+      "sure": "Sûr ?",
+      "newDone": "Nouveau mémo créé. Les autres sont dans « Mes mémos ».",
+      "opened": "Mémo ouvert.",
+      "deleted": "Mémo supprimé.",
+      "titleL": "La décision, en une ligne",
+      "titlePh": "Ex. : Corriger les retours Amazon avant octobre",
+      "miniTitleL": "Le concept, en une ligne",
+      "miniTitlePh": "Ex. : Le boxer qui ne se troue pas",
+      "author": "Ton nom",
+      "addAct": "Ajouter une action",
+      "addNeed": "Ajouter une demande",
+      "addQ": "Ajouter une question",
+      "actPh": "Action",
+      "ownPh": "Responsable",
+      "datePh": "Pour le…",
+      "qPh": "Question",
+      "aPh": "Réponse du décideur",
+      "needPh": "Ce dont tu as besoin",
+      "copied": "Copié. Colle-le dans la description de la tâche Asana.",
+      "manual": "Copie ce texte et colle-le dans la tâche Asana",
+      "close": "Fermer",
+      "saved": "PDF enregistré.",
+      "making": "Création du PDF…",
+      "confirmNew": "Effacer ce mémo et repartir de zéro ?",
+      "cleared": "Nouveau mémo prêt.",
+      "filled": "Exemple chargé : modifie-le ou efface-le.",
+      "prepared": "Préparé pour",
+      "created": "Créé par",
+      "pole": "Pôle ",
+      "foot": "© 2026 BoxHero · Tous droits réservés · par Khalifa, COO. Tes mémos sont enregistrés automatiquement.",
+      "pdfOff": "Le téléchargement n’est pas disponible ici : utilise Imprimer puis « Enregistrer en PDF ».",
+      "nowProp": "Ta proposition",
+      "res": "Résultat attendu",
+      "resPh": "Le chiffre et la date",
+      "worksIf": "Ça marche si",
+      "worksPh": "Coût par nouveau client sous X $, panier moyen au-dessus de Y $, après Z $ dépensés",
+      "status": {
+        "draft": "Brouillon",
+        "to_decide": "À décider",
+        "decided": "Décidé",
+        "archived": "Archivé"
+      },
+      "listH": "Les mémos",
+      "allTeamsH": "Tous les pôles",
+      "allTeams": "Tous",
+      "allStatuses": "Tous",
+      "statusL": "Statut",
+      "searchL": "Chercher",
+      "searchPh": "Un titre, un mot, un nom…",
+      "countOne": "1 mémo",
+      "countMany": "{n} mémos",
+      "empty": "Aucun mémo ici pour l’instant.",
+      "emptyHint": "Crée le premier avec « Nouveau mémo ».",
+      "by": "par",
+      "forL": "pour",
+      "updatedL": "Modifié le {date}",
+      "allMemos": "Tous les mémos",
+      "forMe": "À décider par moi",
+      "forMeNone": "Rien à décider pour l’instant.",
+      "mineNone": "Pas encore de mémo.",
+      "countZero": "0 mémo",
+      "noMatch": "Aucun mémo ne correspond à « {q} ».",
+      "deciderTbd": "décideur à choisir",
+      "showMore": "Afficher plus",
+      "pageNotFound": "Cette page n’existe pas.",
+      "decisionH": "La décision",
+      "deciderL": "Qui décide",
+      "deciderPh": "Choisir…",
+      "submit": "Envoyer pour décision",
+      "submitSub": "le décideur répond sous les questions",
+      "submitSubMini": "le décideur valide le concept",
+      "needDecider": "Choisis d’abord qui décide.",
+      "needTitle": "Écris d’abord la décision, en une ligne.",
+      "backToDraft": "Repasser en brouillon",
+      "markDecided": "Marquer comme décidé",
+      "markDecidedSub": "tes réponses sont enregistrées",
+      "reopen": "Rouvrir la décision",
+      "archive": "Archiver",
+      "restore": "Restaurer en brouillon",
+      "sentDone": "Envoyé pour décision.",
+      "draftDone": "Repassé en brouillon.",
+      "decidedDone": "Décision enregistrée.",
+      "reopenedDone": "Décision rouverte.",
+      "archivedDone": "Mémo archivé.",
+      "restoredDone": "Mémo restauré.",
+      "readOnly": "Lecture seule",
+      "notAuthor": "Seul l’auteur peut modifier ce mémo.",
+      "lockedDecided": "Décidé : ce mémo ne se modifie plus.",
+      "lockedArchived": "Archivé : restaure-le pour le modifier.",
+      "answerWait": "Le décideur répondra ici.",
+      "answeredBy": "Réponse de {name}",
+      "answerSaved": "Réponse enregistrée.",
+      "editedElsewhere": "Ce mémo a aussi été modifié ailleurs : vérifie le texte.",
+      "tooLong": "Trop long : raccourcis ce texte.",
+      "sessionExpired": "Session expirée : reconnecte-toi. Ton texte est gardé sur cet appareil.",
+      "answerDropped": "L’auteur a retiré une question : ta réponse à cette question n’est pas gardée.",
+      "answersClosed": "Ce mémo n’est plus à décider : ta réponse n’est pas enregistrée.",
+      "delRow": "Supprimer : {what}",
+      "saving": "Enregistrement…",
+      "savedAuto": "Enregistré",
+      "saveError": "Pas enregistré : vérifie ta connexion.",
+      "notFound": "Ce mémo n’existe pas, ou tu n’y as pas accès.",
+      "backToList": "Retour aux mémos",
+      "you": "toi",
+      "noTeam": "Tu n’es encore dans aucun pôle : tu ne vois que tes mémos. Demande à Khalifa ou Mattéo de t’ajouter.",
+      "loginH": "Connexion",
+      "loginIntro": "Connecte-toi avec ton adresse e-mail et ton mot de passe.",
+      "emailL": "Ton adresse e-mail",
+      "emailPh": "prenom@gmail.com",
+      "badEmail": "Cette adresse ne ressemble pas à un e-mail.",
+      "badDomain": "Cette adresse n’est pas invitée. Demande à Khalifa ou Mattéo de t’ajouter (page L’équipe).",
+      "authError": "Ce lien ne marche plus : connecte-toi avec ton mot de passe.",
+      "rateLimited": "Trop de demandes : réessaie dans une minute.",
+      "signOut": "Se déconnecter",
+      "account": "Compte : {email}",
+      "teamH": "L’équipe",
+      "teamIntro": "Chaque personne voit les mémos de ses pôles, plus ceux qu’elle écrit ou décide. Les admins voient tout.",
+      "manageTeam": "Gérer l’équipe",
+      "nameL": "Nom",
+      "emailCol": "E-mail",
+      "teamsL": "Pôles",
+      "adminL": "Admin",
+      "noTeamYet": "Aucun pôle",
+      "teamSaved": "Équipe mise à jour.",
+      "nameRequired": "Écris ton nom.",
+      "profileNameL": "Ton nom affiché",
+      "profileSaved": "Nom enregistré.",
+      "sendAsana": "Envoyer dans Asana",
+      "sendAsanaSub": "crée la tâche pour le décideur",
+      "asanaDone": "Tâche Asana créée.",
+      "asanaOpen": "Ouvrir dans Asana",
+      "asanaSent": "déjà dans Asana",
+      "asanaError": "Asana n’a pas répondu : réessaie, ou copie le mémo.",
+      "asanaUpdated": "Tâche Asana mise à jour.",
+      "asanaUnassigned": "Tâche Asana créée, sans assignation : la personne qui décide n’est pas dans Asana.",
+      "profileMissing": "Ton compte n’est pas prêt : écris à Khalifa ou Mattéo.",
+      "openInApp": "Ouvrir le mémo dans l’app",
+      "decidedOn": "Décidé le {date}",
+      "noDecider": "à choisir",
+      "lastAdmin": "Il faut garder au moins un admin.",
+      "notAllowed": "Tu n’as pas le droit de faire ça.",
+      "errorH": "Oups",
+      "errorMsg": "Quelque chose n’a pas marché. Réessaie dans un instant.",
+      "retry": "Réessayer",
+      "langL": "Langue",
+      "skip": "Aller au contenu",
+      "prefixAsana": "MÉMO : ",
+      "prefixAsanaMini": "PUB : ",
+      "prefixPdf": "Mémo : ",
+      "prefixPdfMini": "Mini-mémo : ",
+      "heroMini": "Pub",
+      "inviteH": "Inviter quelqu’un",
+      "inviteIntro": "Ajoute l’adresse e-mail de la personne (Gmail, Proton…). Tu reçois un code d’accès à lui envoyer : avec ce code, elle choisit son mot de passe sur {url}.",
+      "inviteEmailL": "Adresse e-mail",
+      "invitePoleL": "Pôle",
+      "invitePoleAsk": "Elle le choisira",
+      "inviteBtn": "Inviter",
+      "invited": "Invitation enregistrée.",
+      "inviteDup": "Cette adresse est déjà invitée.",
+      "inviteAlready": "Cette personne a déjà un compte.",
+      "invitePendingH": "En attente de première connexion",
+      "inviteNone": "Personne en attente.",
+      "inviteRemove": "Retirer",
+      "inviteRemoved": "Invitation retirée.",
+      "inviteRemoveL": "Retirer l’invitation de {email}",
+      "welcomeH": "Bienvenue",
+      "welcomeIntro": "Avant de commencer : ton nom, et ton pôle. Tu arriveras ensuite directement dans les mémos de ton pôle.",
+      "welcomeNameL": "Ton prénom et ton nom",
+      "welcomePoleL": "Ton pôle",
+      "welcomePoleGiven": "Ton pôle : {pole}.",
+      "welcomeAdminNote": "Tu es admin : tu vois tous les pôles. Choisir le tien est facultatif.",
+      "welcomeGo": "C’est parti",
+      "welcomeSaving": "Un instant…",
+      "welcomeNeedPole": "Choisis ton pôle.",
+      "callH": "L’appel",
+      "callWhenL": "Date et heure",
+      "callWhoL": "Personnes de l’appel",
+      "callWhoHint": "Elles voient ce mémo avant l’appel.",
+      "callAddL": "Ajouter une personne",
+      "callAddPh": "Nom ou adresse e-mail",
+      "callAdd": "Ajouter",
+      "callNone": "Personne pour l’instant.",
+      "callRemoveL": "Retirer {name} de l’appel",
+      "callAdded": "Ajouté à l’appel.",
+      "callRemoved": "Retiré de l’appel.",
+      "callDup": "Déjà dans l’appel.",
+      "callTooMany": "50 personnes au maximum.",
+      "callDateSaved": "Date de l’appel enregistrée.",
+      "callSaveFirst": "Commence à écrire : dès que le mémo est enregistré, tu peux ajouter la date et les personnes de l’appel.",
+      "callNoDate": "Pas encore de date.",
+      "slackSend": "Envoyer sur Slack",
+      "slackSub": "En message privé aux personnes de l’appel",
+      "slackSending": "Envoi sur Slack…",
+      "slackSentOne": "Envoyé sur Slack à 1 personne.",
+      "slackSentMany": "Envoyé sur Slack à {n} personnes.",
+      "slackMissing": "Pas trouvé sur Slack : {list}.",
+      "slackNobody": "Ajoute d’abord les personnes de l’appel.",
+      "slackOff": "Slack n’est pas encore connecté à l’application : un admin doit l’installer.",
+      "slackError": "L’envoi sur Slack a échoué : réessaie.",
+      "slackMsg": "*{author}* te partage un mémo pour l’appel{when} : *{title}*",
+      "slackMsgWhen": " du {date}",
+      "slackMsgHint": "Lis-le avant l’appel.",
+      "slackOpen": "Ouvrir le mémo",
+      "callsH": "Mes prochains appels",
+      "callsNone": "Aucun appel prévu dans les 14 prochains jours.",
+      "callsPrepare": "Préparer le mémo",
+      "callsOpen": "Voir le mémo",
+      "callsMore": "+{n}",
+      "callsToday": "Aujourd’hui",
+      "callsTomorrow": "Demain",
+      "callsNoTeam": "Tu n’es dans aucun pôle : tu ne peux pas encore préparer de mémo.",
+      "calChange": "Changer de lien d’agenda",
+      "calH": "Connecter ton agenda",
+      "calIntro": "Colle ici le lien privé de ton agenda. Il reste secret : seule l’application le lit, pour afficher tes prochains appels.",
+      "calGoogleH": "Google Agenda (Gmail)",
+      "calGoogle1": "Sur ordinateur, ouvre Google Agenda, puis la roue ⚙ en haut à droite → Paramètres.",
+      "calGoogle2": "À gauche, sous « Paramètres de mes agendas », clique sur ton agenda.",
+      "calGoogle3": "Descends jusqu’à « Adresse secrète au format iCal » et copie-la.",
+      "calProtonH": "Proton Calendar",
+      "calProton1": "Ouvre Proton Calendar, puis Paramètres → Agendas.",
+      "calProton2": "Sur ton agenda : Partager → « Partager avec n’importe qui » → Créer un lien, avec « Afficher tous les détails ».",
+      "calProton3": "Copie le lien.",
+      "calUrlL": "Lien privé de ton agenda",
+      "calSave": "Enregistrer",
+      "calChecking": "Vérification…",
+      "calRemove": "Déconnecter mon agenda",
+      "calSaved": "Agenda connecté.",
+      "calRemoved": "Agenda déconnecté.",
+      "calBadUrl": "Ce n’est pas un lien d’agenda : colle l’adresse qui commence par https:// (ou webcal://).",
+      "calBadHost": "Ce lien ne vient pas de Google Agenda, Proton, Outlook ou iCloud.",
+      "calUnreachable": "Ton agenda n’a pas répondu. Vérifie le lien, ou réessaie dans un moment.",
+      "calNotIcs": "Ce lien ne donne pas un agenda. Vérifie que tu as copié l’adresse iCal (ou le lien de partage).",
+      "calDown": "Ton agenda n’a pas répondu : les appels ci-dessous viennent seulement des mémos.",
+      "calClose": "Fermer",
+      "passwordL": "Mot de passe",
+      "signIn": "Se connecter",
+      "signingIn": "Connexion…",
+      "firstTime": "Première connexion ou mot de passe oublié ?",
+      "setupH": "Choisir mon mot de passe",
+      "setupIntro": "Entre ton adresse et le code d’accès que Khalifa ou Mattéo t’a donné, puis choisis ton mot de passe.",
+      "codeL": "Code d’accès",
+      "newPasswordL": "Nouveau mot de passe (8 caractères minimum)",
+      "confirmPasswordL": "Le même, encore une fois",
+      "setPassword": "Enregistrer et me connecter",
+      "settingPassword": "Un instant…",
+      "haveAccount": "J’ai déjà mon mot de passe",
+      "showPassword": "Afficher",
+      "hidePassword": "Masquer",
+      "needPassword": "Écris ton mot de passe.",
+      "badCredentials": "Adresse ou mot de passe incorrect.",
+      "needCode": "Écris le code d’accès qu’on t’a donné.",
+      "codeInvalid": "Ce code ne correspond pas à cette adresse.",
+      "codeExpired": "Ce code a expiré : demandes-en un nouveau à Khalifa ou Mattéo.",
+      "codeLocked": "Trop d’essais avec ce code : demandes-en un nouveau à Khalifa ou Mattéo.",
+      "weakPassword": "Choisis un mot de passe d’au moins 8 caractères.",
+      "mismatch": "Les deux mots de passe ne sont pas identiques.",
+      "loginError": "Ça n’a pas marché : réessaie dans un instant.",
+      "codeCardH": "Code d’accès de {who}",
+      "codeCardHint": "Envoie ce message à la personne (Slack, WhatsApp…). Le code sert une fois et pendant 7 jours : elle choisit ensuite son mot de passe.",
+      "codeMessage": "Bonjour ! Voici ton accès au Mémo BoxHero : {link}\nTon adresse : {email}\nTon code d’accès : {code}\nTu choisis ensuite ton mot de passe. Le code sert une fois, pendant 7 jours.",
+      "codeCopy": "Copier le message",
+      "codeCopied": "Message copié.",
+      "newCode": "Nouveau code",
+      "newCodeL": "Nouveau code d’accès pour {who} (mot de passe oublié)",
+      "codeFailed": "Impossible de créer le code : réessaie.",
+      "codeClose": "Fermer",
+      "sideL": "Navigation",
+      "navL": "Menu principal",
+      "homeL": "Accueil",
+      "appName": "Mémo",
+      "googleConnect": "Connecter Google Agenda",
+      "googleReconnect": "Reconnecter Google Agenda",
+      "otherCalendar": "Autre agenda (Proton, Outlook…)",
+      "googleFrom": "Google Agenda · {email}",
+      "icsFrom": "Agenda connecté par lien",
+      "googleDisconnect": "Déconnecter",
+      "googleBrokenNote": "Google Agenda ne répond plus pour ce compte : reconnecte-le pour revoir tes appels.",
+      "googleNotice_connected": "Google Agenda est connecté.",
+      "googleNotice_denied": "Connexion annulée sur l’écran de Google.",
+      "googleNotice_scope": "Sur l’écran de Google, coche l’accès à l’agenda pour voir tes appels ici.",
+      "googleNotice_error": "La connexion à Google a échoué : réessaie.",
+      "googleNotice_off": "Google Agenda n’est pas encore activé sur l’application : l’administrateur doit finir sa configuration.",
+      "googleDisconnected": "Google Agenda est déconnecté.",
+      "callsJoin": "Rejoindre",
+      "callsJoinL": "Rejoindre l’appel « {title} »",
+      "callsEmptyConnect": "Connecte ton agenda : tes prochains appels s’afficheront ici, chacun avec son mémo."
+    },
+    "placeholders": {
+      "memo": [
+        "À toi d'écrire : le contexte, avec les chiffres, ce qu'on perd et à partir de quand",
+        "À toi d'écrire : le problème, avec les chiffres",
+        "Déjà essayé :\nÉtapes :\n1)\n2)\n3)\nCe qui peut bloquer :",
+        "Je propose de … à partir du …"
+      ],
+      "mini": [
+        "À toi d'écrire : l'angle, le hook, la promesse, à qui ça parle",
+        "Ce que disent les clients :\nCe qui marche déjà :",
+        "Hook :\nCorps :\nOffre :\nVariations :\nPrêt le … , lancé le …",
+        "À toi d'écrire : pourquoi maintenant"
+      ]
+    },
+    "guide": {
+      "t1": "En 4 étapes",
+      "steps": [
+        "Choisis ton pôle.",
+        "Écris : une décision = un mémo.",
+        "Clique sur « Copier pour Asana » et colle dans une tâche.",
+        "Envoie-le pour décision : le décideur répond sous chaque question, dans l’app."
+      ],
+      "t2": "Les 5 parties",
+      "parts": [
+        [
+          "Pourquoi",
+          "ce qu’on perd si on attend"
+        ],
+        [
+          "Quoi",
+          "le problème, en chiffres"
+        ],
+        [
+          "Comment",
+          "essayé, étapes, blocages"
+        ],
+        [
+          "Maintenant",
+          "qui fait quoi, pour quand"
+        ],
+        [
+          "Questions",
+          "ce que le décideur tranche"
+        ]
+      ],
+      "t3": "Les règles",
+      "rules": [
+        "1 à 2 pages",
+        "Chiffres, noms, dates",
+        "Envoyé avant la réunion",
+        "Pas de mémo, pas de réunion"
+      ]
+    }
+  },
+  "en": {
+    "doc": {
+      "sig": "© 2026 BoxHero · All rights reserved · by Khalifa, COO",
+      "tag": "No memo, no meeting.",
+      "forL": "Prepared for:",
+      "byL": "Created by:",
+      "byV": "[Name] · [date]",
+      "memoTitle": "MEMO: [the decision, in one line]",
+      "intro": [
+        "**What it is for:** proposing a decision **in writing, before the meeting**. The reader must understand in **2 minutes** and be able to answer **yes or no**.",
+        "**One memo per topic.** Every important decision or new idea gets its own memo. Several topics, several memos. The steps of one topic go under \"How\".",
+        "**How to use it:** fill in this memo here, click **\"Copy for Asana\"**, then paste it into a task \"MEMO: your decision\", assigned to the person who decides."
+      ],
+      "meta": [
+        [
+          "TO",
+          "[who decides]"
+        ],
+        [
+          "FROM",
+          "[who proposes]"
+        ],
+        [
+          "DATE",
+          "[day month year]"
+        ],
+        [
+          "RE",
+          "[the decision needed, in one sentence]"
+        ]
+      ],
+      "ex": "Example",
+      "fill": "Your turn to write",
+      "secs": [
+        [
+          "WHY",
+          "Why now?",
+          "**Why it is urgent.** What we **lose if we do nothing**, and **from when**.",
+          [
+            "[The context, with numbers. What happens if we do nothing, and by when.]"
+          ]
+        ],
+        [
+          "WHAT",
+          "The problem",
+          "**The problem in a few lines, with numbers.** Not the solution yet.",
+          [
+            "[The problem, clearly. How much, since when, compared to what.]"
+          ]
+        ],
+        [
+          "HOW",
+          "How we fix it",
+          "**What we already tried**, **the steps**, **what it takes** (money, people, tools), and **what could block it**.",
+          [
+            "[What we already tried.]",
+            "[The steps, with an owner and a date.]",
+            "[What it takes: budget, people, tools, access.]",
+            "[What could block it, and how we avoid it.]"
+          ]
+        ],
+        [
+          "NOW",
+          "What I propose",
+          "**What you propose**, **who does what by when**, **what you need from the reader** (a yes, a budget, an access) and **the expected result**.",
+          null
+        ],
+        [
+          "QUESTIONS",
+          "To decide",
+          "**The points the decision maker must settle.** They write **their answer under each question**.",
+          null
+        ]
+      ],
+      "nowFill": [
+        "[\"I propose we … starting [date].\"]"
+      ],
+      "actL": "Actions",
+      "act": "[Action] · Owner: [name] · Due: [date]",
+      "needL": "What I need",
+      "needs": [
+        "[A yes or a no, by [date]]",
+        "[Budget, access or approval]"
+      ],
+      "resL": "Expected result",
+      "res": "[The number and the date.]",
+      "q": "[Question] → Answer:",
+      "poles": {
+        "ops": {
+          "name": "Operations",
+          "ex": [
+            "Amazon returns have been at **31%** since July, versus **under 5%** on the website. The channel makes **$2.9** of sales per ad dollar, yet **we lose money on it**. Without a fix **before October**, we miss Amazon's biggest month.",
+            "Returns come mostly from **\"too small\"**. The old 1.0 stored at Flatfee carries a **label 2 sizes too big**, and nobody knows whether Flatfee corrects the size. About **3,700 orders per quarter** are affected.",
+            "**Already tried:** a size card in the parcel, no measured effect.\n**Steps:**\n1) Flatfee confirms the size correction in writing, this week;\n2) we fix the Amazon listing with AMZ Boost;\n3) we measure returns over 30 days.\n**What could block it:** the stock already at Amazon, to be relabelled.",
+            "**I propose we launch the fix on Monday.**\nLukas gets Flatfee's answer **on 2 October**\nAMZ Boost fixes the listing **on 6 October**\nKhalifa measures returns **on 6 November**.\n**I need your go** to relaunch Amazon ads.\n**Expected result: returns under 12% in November.**",
+            "Do we relabel the stock already at Amazon, or let it sell through? → Answer:"
+          ]
+        },
+        "growth": {
+          "name": "Growth",
+          "ex": [
+            "Black Friday starts on **20 November**. The \"Buy 7 Get 7\" offer on the 2.0 has **never been tested**. If it fails, we lose **the most important week of the year**; if it works too well, **we run out of stock**.",
+            "A \"7 + 7\" order takes **14 pieces**, versus **8** for the current pack. On about **12,700 2.0 orders in November**, if 30 to 50% take the offer, we need **23,000 to 38,000 more pieces**. With a \"5 + 5\", we would only need **8,000 to 13,000 more**.",
+            "**Already tried:** nothing, the offer never ran.\n**Steps:**\n1) test \"5 + 5\" against \"7 + 7\" on 20% of traffic, 13 to 26 October;\n2) compare average order value and cost per new customer;\n3) keep the winner for Black Friday.\n**What could block it:** 2.0 stock, to check with Operations.",
+            "**I propose we launch the test on 13 October.**\nOllie prepares both offers **by 10 October**\nLukas checks the stock\ndecision **on 27 October**.\n**I need your go** on the test.\n**Expected result:** the Black Friday offer chosen **on numbers**.",
+            "If \"7 + 7\" wins but stock can't follow, how many orders do we cap it at? → Answer:"
+          ]
+        },
+        "crea": {
+          "name": "Creative",
+          "ex": [
+            "We spend on ads every day without knowing **exactly what makes an ad win**: hook, angle, format. In November, **testing costs more**: we must find the winners **in October**.",
+            "Yassine's analysis tool ranks **all our ads by what they bring in**, element by element. It has been **ready since the start of the year**, but **nobody uses it** in production.",
+            "**Already tried:** manual analysis during reviews, too slow.\n**Steps:**\n1) Yassine finishes the tool on **the 3 biggest pages**;\n2) every creative strategist checks it before writing a mini memo;\n3) we review its results at the Tuesday call.\n**What could block it:** access to the ad accounts.",
+            "**I propose we plug it in this week.**\nLukas grants access **on 1 October**\nYassine delivers the 3 pages **on 3 October**\nfirst review with the tool **on 6 October**.\n**I need your go** for every new concept to go through the tool.\n**Expected result:** more winning ads per week **before Black Friday**.",
+            "Do we start with Meta US only, or Meta US and CO? → Answer:"
+          ]
+        },
+        "sav": {
+          "name": "Customer support",
+          "ex": [
+            "**28% of support contacts** ask \"where is my order\". Every ticket costs time and money, and Black Friday will **multiply the volume**. Without a fix **before November**, support will be overwhelmed.",
+            "Customers have **no clear page** to track their parcel without writing to support. Parcels ship from China (**about 12 days**) or the US (**2 days**), and customers don't know which one they get.",
+            "**Already tried:** the shipping email, rarely read.\n**Steps:**\n1) a \"Track my order\" page, visible on the site and in every email;\n2) an auto-reply that sends the link;\n3) we measure the share of \"where is my order\" tickets over 30 days.\n**What could block it:** tracking for parcels from China updates late.",
+            "**I propose we put it live on 15 October.**\nThe site owner sets up the page **by 10 October**\nsupport switches on the auto-reply **on 15 October**\nreview **on 15 November**.\n**I need your go** on the tracking tool.\n**Expected result: under 15% \"where is my order\" tickets in November.**",
+            "Do we show the real delivery time on the product page, at the risk of losing sales? → Answer:"
+          ]
+        },
+        "finance": {
+          "name": "Finance",
+          "ex": [
+            "We pay Bestfulfill **for every order**, without checking each month that **pieces invoiced = pieces sold**. A **1%** gap on the month's payments means **thousands of dollars** lost without knowing it.",
+            "There is **no regular check**. Gaps (upsell prices, storage fees) only show up **months later**, when they are hard to recover.",
+            "**Already tried:** a one-off check, once.\n**Steps:**\n1) each month, compare pieces sold on Shopify with pieces invoiced, by product;\n2) compare invoiced prices with the contract;\n3) every gap goes to Bestfulfill **within 7 days**.\n**What could block it:** removing cancelled and refunded orders to compare fairly.",
+            "**I propose we start with August.**\nThe accountant runs the August check **by 10 October**\nKhalifa validates the method\nthen every month **before the 10th**.\n**I need your go** to claim every gap.\n**Expected result:** every gap caught **within the month**.",
+            "Below which amount do we not claim a gap? → Answer:"
+          ]
+        }
+      },
+      "mini": {
+        "title": "MINI MEMO: [the concept, in one line]",
+        "t1": "The ad",
+        "t2": "mini memo",
+        "tag": "One ad idea = one page.",
+        "pole": "Creative",
+        "intro": [
+          "**What it is for:** proposing **a new ad concept** in one page, before producing it.",
+          "**One mini memo per concept.** Not for every variation: for every **new ad idea**.",
+          "**How to use it:** fill in this mini memo here, click **\"Copy for Asana\"**, then paste it into a task \"AD: your concept\"."
+        ],
+        "meta": [
+          [
+            "FROM",
+            "[creative strategist]"
+          ],
+          [
+            "DATE",
+            "[day month year]"
+          ],
+          [
+            "PRODUCT",
+            "[1.0 · 2.0 · Nova · Infeel · socks]"
+          ],
+          [
+            "FORMAT",
+            "[video · static · UGC · VSL]"
+          ]
+        ],
+        "secs": [
+          [
+            "WHAT",
+            "The concept",
+            "**The idea in 3 lines:** angle, hook, promise. **Who** it speaks to.",
+            "**A boxer that doesn't get holes:** we film a stress test on the seam, hook \"this one is 8 months old\". For men aged 35 to 55 who have already thrown away holed boxers.",
+            [
+              "[Angle, hook, promise. Who it speaks to.]"
+            ]
+          ],
+          [
+            "WHY",
+            "The proof",
+            "**What shows it can work:** what customers say, what already works for us or a competitor.",
+            "**\"Holes after 3 washes\"** appears in **60 support tickets** since June; the **6-month anti-hole guarantee** is in our offers but **never shown in ads**.",
+            [
+              "[What customers say: reviews, tickets, comments.]",
+              "[What already works: ad, spend, result.]"
+            ]
+          ],
+          [
+            "HOW",
+            "Production",
+            "**The script**, **what it takes to produce**, **the variations**, and **when it is ready**.",
+            "**Hook:** the boxer pulled with both hands, 3 seconds.\n**Body:** 8 months of use, seam intact, the 6-month guarantee.\n**Offer:** 8-pack of 2.0.\n**Variations:** 3 hooks, 2 formats. Ready **on 6 October**, live **on 8 October**.",
+            [
+              "[Script: hook, body, offer, call to action.]",
+              "[What it takes: shoot, editor, voice, products.]",
+              "[Variations.]",
+              "[Ready on [date], live on [date].]"
+            ]
+          ],
+          [
+            "NOW",
+            "Why this ad now",
+            "**Why now** (season, offer, stock) and **how we will know it works**, with numbers.",
+            "October is the month to find winners before Black Friday.\n**It works if:** cost per new customer **under $35** and average order value **above $70** after **$1,000** spent.",
+            [
+              "[Why now.]",
+              "[It works if: cost per new customer under $X, average order value above $Y, after $Z spent.]"
+            ]
+          ]
+        ]
+      }
+    },
+    "ui": {
+      "poles": {
+        "ops": "Operations",
+        "growth": "Growth",
+        "crea": "Creative",
+        "sav": "Support",
+        "finance": "Finance",
+        "mini": "Ad mini memo"
+      },
+      "memo": "The memo",
+      "mini": "The mini memo",
+      "steps": "Your memo",
+      "showEx": "Show examples",
+      "copy": "Copy for Asana",
+      "copySub": "to paste in the task",
+      "pdf": "Download PDF",
+      "pdfSub": "the designed version",
+      "example": "See a filled memo",
+      "nw": "New memo",
+      "rules": "The rules",
+      "rulesL": [
+        "**One memo per topic.** Several topics, several memos.",
+        "**1 to 2 pages.** Every sentence earns its place.",
+        "**Numbers, names, dates.**",
+        "**Send it before the meeting.** The meeting is for deciding."
+      ],
+      "guide": "Guide",
+      "gWhat": "What a memo is for",
+      "gParts": "The parts of the memo",
+      "gButtons": "The buttons",
+      "gB": [
+        [
+          "Copy for Asana",
+          "Copies the filled memo, with its headings and lists. Create an Asana task \"MEMO: your decision\", assign it to the person who decides, and paste the memo into the description. If your browser blocks automatic copying, the text shows up: select it and copy it."
+        ],
+        [
+          "Download PDF",
+          "Creates the designed version, with the team cover, to send it or attach it to the task."
+        ],
+        [
+          "New memo",
+          "Creates an empty memo. Previous ones stay in \"My memos\", on the right."
+        ],
+        [
+          "See a filled memo",
+          "Opens a complete example for the team, in a new memo, to see what a real memo looks like."
+        ],
+        [
+          "Show examples",
+          "Shows or hides the example above each question."
+        ]
+      ],
+      "gClose": "Close the guide",
+      "mine": "My memos",
+      "untitled": "Untitled",
+      "del": "Delete",
+      "sure": "Sure?",
+      "newDone": "New memo created. The others are in \"My memos\".",
+      "opened": "Memo opened.",
+      "deleted": "Memo deleted.",
+      "titleL": "The decision, in one line",
+      "titlePh": "E.g. Fix Amazon returns before October",
+      "miniTitleL": "The concept, in one line",
+      "miniTitlePh": "E.g. The boxer that doesn’t get holes",
+      "author": "Your name",
+      "addAct": "Add an action",
+      "addNeed": "Add a request",
+      "addQ": "Add a question",
+      "actPh": "Action",
+      "ownPh": "Owner",
+      "datePh": "Due…",
+      "qPh": "Question",
+      "aPh": "Decision maker’s answer",
+      "needPh": "What you need",
+      "copied": "Copied. Paste it into the Asana task description.",
+      "manual": "Copy this text and paste it into the Asana task",
+      "close": "Close",
+      "saved": "PDF saved.",
+      "making": "Creating the PDF…",
+      "confirmNew": "Clear this memo and start again?",
+      "cleared": "New memo ready.",
+      "filled": "Example loaded: edit it or clear it.",
+      "prepared": "Prepared for",
+      "created": "Created by",
+      "pole": "",
+      "foot": "© 2026 BoxHero · All rights reserved · by Khalifa, COO. Your memos are saved automatically.",
+      "pdfOff": "Downloads aren’t available here: use Print, then “Save as PDF”.",
+      "nowProp": "Your proposal",
+      "res": "Expected result",
+      "resPh": "The number and the date",
+      "worksIf": "It works if",
+      "worksPh": "Cost per new customer under $X, AOV above $Y, after $Z spent",
+      "status": {
+        "draft": "Draft",
+        "to_decide": "To decide",
+        "decided": "Decided",
+        "archived": "Archived"
+      },
+      "listH": "The memos",
+      "allTeamsH": "All teams",
+      "allTeams": "All",
+      "allStatuses": "All",
+      "statusL": "Status",
+      "searchL": "Search",
+      "searchPh": "A title, a word, a name…",
+      "countOne": "1 memo",
+      "countMany": "{n} memos",
+      "empty": "No memos here yet.",
+      "emptyHint": "Create the first one with \"New memo\".",
+      "by": "by",
+      "forL": "for",
+      "updatedL": "Updated {date}",
+      "allMemos": "All memos",
+      "forMe": "Waiting for my decision",
+      "forMeNone": "Nothing to decide right now.",
+      "mineNone": "No memo yet.",
+      "countZero": "0 memos",
+      "noMatch": "No memo matches \"{q}\".",
+      "deciderTbd": "decision maker to be chosen",
+      "showMore": "Show more",
+      "pageNotFound": "This page doesn’t exist.",
+      "decisionH": "The decision",
+      "deciderL": "Decision maker",
+      "deciderPh": "Choose…",
+      "submit": "Send for decision",
+      "submitSub": "the decision maker answers under the questions",
+      "submitSubMini": "the decision maker approves the concept",
+      "needDecider": "Choose the decision maker first.",
+      "needTitle": "Write the decision first, in one line.",
+      "backToDraft": "Back to draft",
+      "markDecided": "Mark as decided",
+      "markDecidedSub": "your answers are saved",
+      "reopen": "Reopen the decision",
+      "archive": "Archive",
+      "restore": "Restore as draft",
+      "sentDone": "Sent for decision.",
+      "draftDone": "Back to draft.",
+      "decidedDone": "Decision recorded.",
+      "reopenedDone": "Decision reopened.",
+      "archivedDone": "Memo archived.",
+      "restoredDone": "Memo restored.",
+      "readOnly": "Read only",
+      "notAuthor": "Only the author can edit this memo.",
+      "lockedDecided": "Decided: this memo can no longer be edited.",
+      "lockedArchived": "Archived: restore it to edit it.",
+      "answerWait": "The decision maker will answer here.",
+      "answeredBy": "Answer from {name}",
+      "answerSaved": "Answer saved.",
+      "editedElsewhere": "This memo was also edited elsewhere: check the text.",
+      "tooLong": "Too long: shorten this text.",
+      "sessionExpired": "Session expired: sign in again. Your text is kept on this device.",
+      "answerDropped": "The author removed a question: your answer to it was not kept.",
+      "answersClosed": "This memo is no longer waiting for a decision: your answer was not saved.",
+      "delRow": "Delete: {what}",
+      "saving": "Saving…",
+      "savedAuto": "Saved",
+      "saveError": "Not saved: check your connection.",
+      "notFound": "This memo doesn’t exist, or you don’t have access to it.",
+      "backToList": "Back to memos",
+      "you": "you",
+      "noTeam": "You’re not in a team yet: you only see your own memos. Ask Khalifa or Mattéo to add you.",
+      "loginH": "Sign in",
+      "loginIntro": "Sign in with your email address and your password.",
+      "emailL": "Your email address",
+      "emailPh": "firstname@gmail.com",
+      "badEmail": "That doesn’t look like an email address.",
+      "badDomain": "This address isn’t invited. Ask Khalifa or Mattéo to add you (Team page).",
+      "authError": "This link no longer works: sign in with your password.",
+      "rateLimited": "Too many requests: try again in a minute.",
+      "signOut": "Sign out",
+      "account": "Account: {email}",
+      "teamH": "The team",
+      "teamIntro": "Everyone sees their teams’ memos, plus the ones they write or decide. Admins see everything.",
+      "manageTeam": "Manage the team",
+      "nameL": "Name",
+      "emailCol": "Email",
+      "teamsL": "Teams",
+      "adminL": "Admin",
+      "noTeamYet": "No team",
+      "teamSaved": "Team updated.",
+      "nameRequired": "Write your name.",
+      "profileNameL": "Your display name",
+      "profileSaved": "Name saved.",
+      "sendAsana": "Send to Asana",
+      "sendAsanaSub": "creates the task for the decision maker",
+      "asanaDone": "Asana task created.",
+      "asanaOpen": "Open in Asana",
+      "asanaSent": "already in Asana",
+      "asanaError": "Asana didn’t respond: try again, or copy the memo.",
+      "asanaUpdated": "Asana task updated.",
+      "asanaUnassigned": "Asana task created, unassigned: the decision maker is not in Asana.",
+      "profileMissing": "Your account is not set up yet: contact Khalifa or Mattéo.",
+      "openInApp": "Open the memo in the app",
+      "decidedOn": "Decided on {date}",
+      "noDecider": "to be chosen",
+      "lastAdmin": "Keep at least one admin.",
+      "notAllowed": "You’re not allowed to do that.",
+      "errorH": "Oops",
+      "errorMsg": "Something went wrong. Try again in a moment.",
+      "retry": "Try again",
+      "langL": "Language",
+      "skip": "Skip to content",
+      "prefixAsana": "MEMO: ",
+      "prefixAsanaMini": "AD: ",
+      "prefixPdf": "Memo: ",
+      "prefixPdfMini": "Mini memo: ",
+      "heroMini": "Ad",
+      "inviteH": "Invite someone",
+      "inviteIntro": "Add the person’s email address (Gmail, Proton…). You get an access code to send them: with it, they choose their password at {url}.",
+      "inviteEmailL": "Email address",
+      "invitePoleL": "Team",
+      "invitePoleAsk": "They’ll choose",
+      "inviteBtn": "Invite",
+      "invited": "Invitation saved.",
+      "inviteDup": "This address is already invited.",
+      "inviteAlready": "This person already has an account.",
+      "invitePendingH": "Waiting for their first sign-in",
+      "inviteNone": "Nobody waiting.",
+      "inviteRemove": "Remove",
+      "inviteRemoved": "Invitation removed.",
+      "inviteRemoveL": "Remove {email}’s invitation",
+      "welcomeH": "Welcome",
+      "welcomeIntro": "Before you start: your name, and your team. You’ll then land straight in your team’s memos.",
+      "welcomeNameL": "Your first and last name",
+      "welcomePoleL": "Your team",
+      "welcomePoleGiven": "Your team: {pole}.",
+      "welcomeAdminNote": "You’re an admin: you see every team. Picking yours is optional.",
+      "welcomeGo": "Let’s go",
+      "welcomeSaving": "One moment…",
+      "welcomeNeedPole": "Pick your team.",
+      "callH": "The call",
+      "callWhenL": "Date and time",
+      "callWhoL": "People on the call",
+      "callWhoHint": "They see this memo before the call.",
+      "callAddL": "Add someone",
+      "callAddPh": "Name or email address",
+      "callAdd": "Add",
+      "callNone": "Nobody yet.",
+      "callRemoveL": "Remove {name} from the call",
+      "callAdded": "Added to the call.",
+      "callRemoved": "Removed from the call.",
+      "callDup": "Already on the call.",
+      "callTooMany": "50 people at most.",
+      "callDateSaved": "Call date saved.",
+      "callSaveFirst": "Start writing: once the memo is saved you can add the date and the people on the call.",
+      "callNoDate": "No date yet.",
+      "slackSend": "Send on Slack",
+      "slackSub": "As a direct message to the people on the call",
+      "slackSending": "Sending on Slack…",
+      "slackSentOne": "Sent on Slack to 1 person.",
+      "slackSentMany": "Sent on Slack to {n} people.",
+      "slackMissing": "Not found on Slack: {list}.",
+      "slackNobody": "Add the people on the call first.",
+      "slackOff": "Slack isn’t connected to the app yet: an admin needs to install it.",
+      "slackError": "Sending on Slack failed: try again.",
+      "slackMsg": "*{author}* shared a memo for the call{when}: *{title}*",
+      "slackMsgWhen": " on {date}",
+      "slackMsgHint": "Read it before the call.",
+      "slackOpen": "Open the memo",
+      "callsH": "My next calls",
+      "callsNone": "No call in the next 14 days.",
+      "callsPrepare": "Prepare the memo",
+      "callsOpen": "See the memo",
+      "callsMore": "+{n}",
+      "callsToday": "Today",
+      "callsTomorrow": "Tomorrow",
+      "callsNoTeam": "You’re not in a team: you can’t prepare a memo yet.",
+      "calChange": "Change calendar link",
+      "calH": "Connect your calendar",
+      "calIntro": "Paste your calendar’s private link. It stays secret: only the app reads it, to show your next calls.",
+      "calGoogleH": "Google Calendar (Gmail)",
+      "calGoogle1": "On a computer, open Google Calendar, then the ⚙ wheel at the top right → Settings.",
+      "calGoogle2": "On the left, under “Settings for my calendars”, click your calendar.",
+      "calGoogle3": "Scroll down to “Secret address in iCal format” and copy it.",
+      "calProtonH": "Proton Calendar",
+      "calProton1": "Open Proton Calendar, then Settings → Calendars.",
+      "calProton2": "On your calendar: Share → “Share with anyone” → Create link, with “See all event details”.",
+      "calProton3": "Copy the link.",
+      "calUrlL": "Your calendar’s private link",
+      "calSave": "Save",
+      "calChecking": "Checking…",
+      "calRemove": "Disconnect my calendar",
+      "calSaved": "Calendar connected.",
+      "calRemoved": "Calendar disconnected.",
+      "calBadUrl": "That isn’t a calendar link: paste the address starting with https:// (or webcal://).",
+      "calBadHost": "This link isn’t from Google Calendar, Proton, Outlook or iCloud.",
+      "calUnreachable": "Your calendar didn’t answer. Check the link, or try again in a moment.",
+      "calNotIcs": "This link doesn’t return a calendar. Check you copied the iCal address (or the share link).",
+      "calDown": "Your calendar didn’t answer: the calls below only come from memos.",
+      "calClose": "Close",
+      "passwordL": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in…",
+      "firstTime": "First time, or forgot your password?",
+      "setupH": "Choose my password",
+      "setupIntro": "Enter your address and the access code Khalifa or Mattéo gave you, then choose your password.",
+      "codeL": "Access code",
+      "newPasswordL": "New password (at least 8 characters)",
+      "confirmPasswordL": "The same again",
+      "setPassword": "Save and sign in",
+      "settingPassword": "One moment…",
+      "haveAccount": "I already have my password",
+      "showPassword": "Show",
+      "hidePassword": "Hide",
+      "needPassword": "Type your password.",
+      "badCredentials": "Wrong address or password.",
+      "needCode": "Type the access code you were given.",
+      "codeInvalid": "This code doesn’t match this address.",
+      "codeExpired": "This code expired: ask Khalifa or Mattéo for a new one.",
+      "codeLocked": "Too many tries with this code: ask Khalifa or Mattéo for a new one.",
+      "weakPassword": "Choose a password of at least 8 characters.",
+      "mismatch": "The two passwords are different.",
+      "loginError": "That didn’t work: try again in a moment.",
+      "codeCardH": "Access code for {who}",
+      "codeCardHint": "Send this message to the person (Slack, WhatsApp…). The code works once, for 7 days: they then choose their password.",
+      "codeMessage": "Hi! Here’s your access to BoxHero Memo: {link}\nYour address: {email}\nYour access code: {code}\nYou then choose your password. The code works once, for 7 days.",
+      "codeCopy": "Copy the message",
+      "codeCopied": "Message copied.",
+      "newCode": "New code",
+      "newCodeL": "New access code for {who} (forgotten password)",
+      "codeFailed": "Couldn’t create the code: try again.",
+      "codeClose": "Close",
+      "sideL": "Navigation",
+      "navL": "Main menu",
+      "homeL": "Home",
+      "appName": "Memo",
+      "googleConnect": "Connect Google Calendar",
+      "googleReconnect": "Reconnect Google Calendar",
+      "otherCalendar": "Another calendar (Proton, Outlook…)",
+      "googleFrom": "Google Calendar · {email}",
+      "icsFrom": "Calendar connected by link",
+      "googleDisconnect": "Disconnect",
+      "googleBrokenNote": "Google Calendar no longer answers for this account: reconnect it to see your calls again.",
+      "googleNotice_connected": "Google Calendar is connected.",
+      "googleNotice_denied": "Connection cancelled on Google’s screen.",
+      "googleNotice_scope": "On Google’s screen, tick the calendar access to see your calls here.",
+      "googleNotice_error": "Connecting to Google failed: try again.",
+      "googleNotice_off": "Google Calendar isn’t switched on in the app yet: the administrator has to finish setting it up.",
+      "googleDisconnected": "Google Calendar is disconnected.",
+      "callsJoin": "Join",
+      "callsJoinL": "Join the call “{title}”",
+      "callsEmptyConnect": "Connect your calendar: your next calls will show here, each with its memo."
+    },
+    "placeholders": {
+      "memo": [
+        "Your turn to write: the context, with numbers, what we lose and from when",
+        "Your turn to write: the problem, with numbers",
+        "Already tried:\nSteps:\n1)\n2)\n3)\nWhat could block it:",
+        "I propose we … starting …"
+      ],
+      "mini": [
+        "Your turn to write: angle, hook, promise, who it speaks to",
+        "What customers say:\nWhat already works:",
+        "Hook:\nBody:\nOffer:\nVariations:\nReady on … , live on …",
+        "Your turn to write: why now"
+      ]
+    },
+    "guide": {
+      "t1": "In 4 steps",
+      "steps": [
+        "Pick your team.",
+        "Write: one decision = one memo.",
+        "Click \"Copy for Asana\" and paste into a task.",
+        "Send it for decision: the decision maker answers under each question, in the app."
+      ],
+      "t2": "The 5 parts",
+      "parts": [
+        [
+          "Why",
+          "what we lose if we wait"
+        ],
+        [
+          "What",
+          "the problem, in numbers"
+        ],
+        [
+          "How",
+          "tried, steps, blockers"
+        ],
+        [
+          "Now",
+          "who does what, by when"
+        ],
+        [
+          "Questions",
+          "what the decision maker settles"
+        ]
+      ],
+      "t3": "The rules",
+      "rules": [
+        "1 to 2 pages",
+        "Numbers, names, dates",
+        "Sent before the meeting",
+        "No memo, no meeting"
+      ]
+    }
+  }
+}

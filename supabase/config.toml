@@ -1,0 +1,86 @@
+# Supabase CLI configuration for local development (`supabase start`) and e2e tests.
+# Keys follow the template of Supabase CLI 2.118 (`supabase init`); everything not listed
+# keeps the CLI default. Reference: https://supabase.com/docs/guides/local-development/cli/config
+#
+# The hosted project is configured in the dashboard, not here. Before going live, set
+# there: Auth > URL Configuration (site URL, the Vercel domain). People sign in with an
+# address and a password chosen with an access code (no email is sent; see README). See
+# supabase/seed.sql for the first admins and their local access code.
+project_id = "boxhero-memo"
+
+[api]
+enabled = true
+port = 54321
+# Only the app tables are exposed. Helpers and configuration live in schema `private`.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Same major version as the hosted project (new projects run Postgres 17).
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+# Allowed email domain and admins for local dev (never run on the hosted project).
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+# The app sends no email; anything Supabase Auth sends locally lands at http://127.0.0.1:54324.
+[local_smtp]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+# Links from Supabase Auth (if any) fall back to this URL when the redirect is not allowed.
+site_url = "http://localhost:3000"
+additional_redirect_urls = [
+  "http://localhost:3000/auth/confirm",
+  "http://127.0.0.1:3000/auth/confirm",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Accounts are created by public.set_password_with_code() (access codes). Who may have one
+# is decided by the database (invitations, checked by a trigger on auth.users).
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+[auth.rate_limit]
+# Sign-in requests per 5 minutes per IP address (default 30).
+sign_in_sign_ups = 30
+# Email-link verifications per 5 minutes per IP address (default 30).
+token_verifications = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Accounts made with an access code are confirmed when created.
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "1s"
+otp_length = 6
+# The link is valid for one hour (the emails say so).
+otp_expiry = 3600
+
+# Only used if someone asks Supabase Auth for an email link directly (the app never
+# does): the link goes to /auth/confirm with token_hash. Paths are relative to the
+# repository root.
+[auth.email.template.magic_link]
+subject = "Ton lien de connexion BoxHero Mémo · Your BoxHero Memo sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Bienvenue sur BoxHero Mémo · Welcome to BoxHero Memo"
+content_path = "./supabase/templates/confirmation.html"

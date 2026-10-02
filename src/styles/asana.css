@@ -1,0 +1,6 @@
+/* "Send to Asana" (phase 2), in the rail's buttons panel. Not in the prototype. */
+.btn[aria-busy="true"]{cursor:progress;opacity:.7}
+/* Link to the task, aligned with the button's <small> line (16px padding + 30px). */
+.asana-open{display:inline-block;margin:6px 0 2px 46px;font-size:13px;font-weight:600;color:var(--ink);text-decoration:underline;text-decoration-color:var(--acc);text-decoration-thickness:2px;text-underline-offset:3px}
+.asana-open:hover{color:var(--acc)}
+.asana-open + .btn{margin-top:8px}

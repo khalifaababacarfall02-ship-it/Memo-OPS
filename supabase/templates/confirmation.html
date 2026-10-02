@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  Supabase Auth "Confirm signup" email: a first sign-in sends this one instead of the magic
+  link when the project requires email confirmation (the hosted default). Bilingual FR/EN.
+  Local: supabase/config.toml [auth.email.template.confirmation]. Hosted: paste into
+  Dashboard > Authentication > Email Templates > Confirm signup.
+  The link goes to /auth/confirm (RedirectTo, sent by the app) with the token hash; it works
+  in any browser, unlike the default {{ .ConfirmationURL }} (PKCE, same browser only).
+  Keep it simple: tables and inline styles only.
+-->
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>BoxHero Mémo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&amp;display=swap" rel="stylesheet" />
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #eef0f3; -webkit-text-size-adjust: 100%">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: #eef0f3">
+      Bienvenue : confirme ton adresse en un clic · Welcome: confirm your address in one click
+    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef0f3">
+      <tr>
+        <td align="center" style="padding: 32px 16px">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px">
+            <tr>
+              <td style="background-color: #0e1420; border-radius: 14px 14px 0 0; padding: 28px 32px 30px; font-family: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; color: #ffffff">
+                <div style="font-size: 13px; font-weight: 800; letter-spacing: 0.32em; line-height: 1">BOXHERO</div>
+                <div style="margin-top: 22px; font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.01em; text-transform: uppercase">LE MÉMO</div>
+                <div style="margin-top: 10px; font-size: 15px; line-height: 1.4; color: #c9ced6">Pas de mémo, pas de réunion.<br /><span lang="en">No memo, no meeting.</span></div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #ffffff; border-radius: 0 0 14px 14px; padding: 32px; font-family: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; color: #151a23">
+                <h1 style="margin: 0; font-size: 22px; line-height: 1.25; font-weight: 800">Bienvenue sur BoxHero Mémo</h1>
+                <p style="margin: 10px 0 0; font-size: 16px; line-height: 1.5">
+                  Clique sur le bouton pour confirmer ton adresse et te connecter. Le lien est valable 1&nbsp;heure et ne sert qu’une fois.
+                </p>
+                <p lang="en" style="margin: 14px 0 0; font-size: 15px; line-height: 1.5; color: #5b6472">
+                  <strong style="color: #151a23">Welcome to BoxHero Memo.</strong> Click the button to confirm your address and sign in. The link is valid for 1&nbsp;hour and works once.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 26px 0 0">
+                  <tr>
+                    <td style="background-color: #d9961a; border-radius: 14px">
+                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email" target="_blank" style="display: inline-block; padding: 14px 24px; font-family: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.2; color: #ffffff; text-decoration: none; border-radius: 14px">Confirmer et me connecter<br /><span style="font-size: 12px; font-weight: 500; color: #fff4d9">Confirm and sign in</span></a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin: 26px 0 0; font-size: 13px; line-height: 1.5; color: #5b6472">
+                  Demandé pour {{ .Email }}. Tu n’as rien demandé&nbsp;? Ignore cet e&#8209;mail&nbsp;: sans ce lien, aucun compte n’est activé.<br />
+                  <span lang="en">Requested for {{ .Email }}. Didn’t ask for it? Ignore this email: without this link, no account is activated.</span>
+                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 22px 0 0">
+                  <tr>
+                    <td style="border-top: 1px solid #dde1e7; padding-top: 16px; font-size: 12px; line-height: 1.5; color: #5b6472">
+                      Le bouton ne marche pas&nbsp;? Copie ce lien dans ton navigateur.<br />
+                      <span lang="en">Button not working? Paste this link into your browser:</span><br />
+                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email" target="_blank" style="color: #2f5d9a; word-break: break-all">{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 18px 16px 0; font-family: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 12px; line-height: 1.6; color: #5b6472">
+                © 2026 BoxHero · Tous droits réservés · par Khalifa, COO<br />
+                <span lang="en">© 2026 BoxHero · All rights reserved · by Khalifa, COO</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
