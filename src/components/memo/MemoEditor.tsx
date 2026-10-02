@@ -45,6 +45,7 @@ import { copyRich } from "@/lib/memo/clipboard";
 import { type ExportMemo, asanaHTML, htmlToText, pdfFileName } from "@/lib/memo/export";
 import { type MemoContent, TRANSITIONS, type Transition, progress } from "@/lib/memo/model";
 import { downloadPdf } from "@/lib/memo/pdf";
+import { CallPanel, type CallState } from "./CallPanel";
 import { DecisionPanel } from "./DecisionPanel";
 import { ExportSheet, getExportSheet } from "./ExportSheet";
 import { CopyIcon, ExampleIcon, NewIcon, PdfIcon } from "./icons";
@@ -65,6 +66,8 @@ export interface MemoEditorProps {
   /** When the page was rendered: the date shown for a memo not stored yet. */
   openedAt: string;
   asanaEnabled: boolean;
+  /** The call (memo_calls + memo_participants); empty for a new memo. */
+  call: CallState;
 }
 
 // What to focus in the next editor after an in-place navigation: the title
@@ -545,6 +548,18 @@ export function MemoEditor(props: MemoEditorProps) {
             readOnlyNote={perm.reason ? u[perm.reason] : null}
             onDecider={onDecider}
             onTransition={(t) => void onTransition(t)}
+          />
+
+          <CallPanel
+            // A new memo gets its id on the first save: start the panel over then.
+            key={memoId ?? "new"}
+            lang={uiLang}
+            memoId={misplaced ? null : memoId}
+            canManage={(role.isAuthor || role.isAdmin) && (status === "draft" || status === "to_decide") && !misplaced}
+            canShare={canSendToAsana}
+            people={people}
+            initial={props.call}
+            beforeSend={beforeAsana}
           />
 
           <div className="panel">

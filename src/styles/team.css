@@ -65,3 +65,23 @@
 
 /* rail: the back link is a .btn ghost */
 .tm-back{text-decoration:none}
+
+/* invitations (admins): an inline form, then the pending addresses */
+.tm-invite{margin-top:30px}
+.tm-hint{color:var(--muted);font-size:14px;margin:6px 0 0}
+.tm-inv-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-top:14px}
+.tm-inv-field{display:flex;flex-direction:column;gap:4px;flex:1 1 220px;min-width:0}
+.tm-inv-field span{font-size:12px;font-weight:600;color:var(--muted)}
+.tm-inv-field input,.tm-inv-field select{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;min-height:44px;width:100%}
+.tm-inv-field input:focus,.tm-inv-field select:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:transparent}
+.tm-inv-field input[aria-invalid="true"]{border-color:#C0392B}
+.tm-inv-team{flex:0 1 190px}
+.tm-inv-btn{width:auto;flex:0 0 auto;margin:0;min-height:44px}
+.tm-inv-h{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 6px}
+.tm-inv-list{list-style:none;margin:0;padding:0}
+.tm-inv-list li{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.tm-inv-mail{font-size:15px;overflow-wrap:anywhere;flex:1 1 200px;min-width:0}
+.tm-inv-pole{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.tm-inv-pole i{width:8px;height:8px;border-radius:50%;background:var(--tc)}
+.tm-inv-x{font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;min-height:32px}
+.tm-inv-x:hover{color:var(--ink);border-color:var(--ink)}

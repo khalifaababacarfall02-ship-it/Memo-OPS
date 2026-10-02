@@ -4,9 +4,8 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/login/LoginForm";
 import { SoloStyles } from "@/components/notfound/SoloStyles";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { firstAllowedDomain } from "@/lib/auth/allowed-email";
 import { safeNext } from "@/lib/auth/redirect";
-import { doc, fmt, ui } from "@/lib/content";
+import { doc, ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
 import "@/styles/login.css";
 
@@ -26,7 +25,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   // anything else is reported as a failed sending.
   const code = first(params.error);
   const initialError = !code ? null : code === "auth" ? u.authError : code === "profile" ? u.profileMissing : u.sendError;
-  const domain = firstAllowedDomain();
 
   return (
     <AppFrame
@@ -42,7 +40,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h2 className="solo-h">{u.loginH}</h2>
         <LoginForm
           next={safeNext(first(params.next))}
-          placeholder={domain ? fmt(u.emailPh, { domain }) : undefined}
+          placeholder={u.emailPh}
           initialError={initialError}
           t={{
             loginIntro: u.loginIntro,

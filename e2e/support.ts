@@ -22,23 +22,26 @@ export interface TestUser {
   email: string;
 }
 
-/** Create (or reuse) a user on an allowed domain, then set name, teams and admin flag. */
+/**
+ * Create (or reuse) a user on an allowed domain, then set name, teams and admin
+ * flag. They count as set up (/welcome done) unless `onboarded: false`.
+ */
 export async function ensureUser(
   email: string,
-  opts: { fullName?: string; teams?: Team[]; isAdmin?: boolean } = {},
+  opts: { fullName?: string; teams?: Team[]; isAdmin?: boolean; onboarded?: boolean } = {},
 ): Promise<TestUser> {
   const a = admin();
   // generateLink creates the user when needed (no email is sent).
   const { data, error } = await a.auth.admin.generateLink({ type: "magiclink", email });
   if (error || !data.user) throw new Error(`generateLink(${email}): ${error?.message}`);
   const id = data.user.id;
-  const patch: Database["public"]["Tables"]["profiles"]["Update"] = {};
+  const patch: Database["public"]["Tables"]["profiles"]["Update"] = {
+    onboarded_at: opts.onboarded === false ? null : new Date().toISOString(),
+  };
   if (opts.fullName !== undefined) patch.full_name = opts.fullName;
   if (opts.isAdmin !== undefined) patch.is_admin = opts.isAdmin;
-  if (Object.keys(patch).length) {
-    const { error: e } = await a.from("profiles").update(patch).eq("id", id);
-    if (e) throw new Error(`profile update: ${e.message}`);
-  }
+  const { error: e } = await a.from("profiles").update(patch).eq("id", id);
+  if (e) throw new Error(`profile update: ${e.message}`);
   if (opts.teams) {
     await a.from("team_members").delete().eq("user_id", id);
     if (opts.teams.length) {
@@ -64,6 +67,7 @@ export async function cleanupUser(email: string): Promise<void> {
   if (!data) return;
   await a.from("memo_answers").delete().eq("answered_by", data.id);
   await a.from("memos").delete().eq("author_id", data.id);
+  await a.from("calendar_links").delete().eq("user_id", data.id);
 }
 
 /** Insert a memo directly (service role) — handy to set up a scenario quickly. */

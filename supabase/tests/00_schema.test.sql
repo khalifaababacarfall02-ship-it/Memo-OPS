@@ -9,7 +9,7 @@ begin
   end if;
 end
 $$;
-select plan(58);
+select plan(72);
 
 -- ---------- extensions and types ----------
 select has_extension('extensions', 'pg_trgm', 'pg_trgm lives in schema extensions');
@@ -19,14 +19,16 @@ select enum_has_labels('public', 'memo_lang', array['fr', 'en'], 'memo_lang = fr
 select enum_has_labels('public', 'memo_status', array['draft', 'to_decide', 'decided', 'archived'], 'memo_status = the four statuses');
 
 -- ---------- tables ----------
-select tables_are('public', array['profiles', 'team_members', 'memos', 'memo_answers'], 'public has exactly the four app tables');
+select tables_are('public',
+  array['profiles', 'team_members', 'memos', 'memo_answers', 'invitations', 'memo_participants', 'memo_calls', 'calendar_links'],
+  'public has exactly the eight app tables');
 select tables_are('private', array['allowed_email_domains', 'allowed_emails', 'bootstrap_admins'], 'private has the three configuration tables');
 select columns_are('public', 'memos',
   array['id', 'team', 'lang', 'title', 'author_id', 'decider_id', 'status', 'content', 'asana_task_gid',
         'search_text', 'decided_at', 'created_at', 'updated_at'],
   'memos has the documented columns');
 select columns_are('public', 'profiles',
-  array['id', 'email', 'full_name', 'is_admin', 'asana_user_gid', 'created_at', 'updated_at'],
+  array['id', 'email', 'full_name', 'is_admin', 'asana_user_gid', 'created_at', 'updated_at', 'onboarded_at'],
   'profiles has the documented columns');
 select columns_are('public', 'memo_answers',
   array['memo_id', 'question_id', 'answer', 'answered_by', 'created_at', 'updated_at'],
@@ -34,14 +36,23 @@ select columns_are('public', 'memo_answers',
 select col_type_is('public', 'memos', 'content', 'jsonb', 'memos.content is jsonb');
 select col_is_pk('public', 'team_members', array['user_id', 'team'], 'team_members PK is (user_id, team)');
 select col_is_pk('public', 'memo_answers', array['memo_id', 'question_id'], 'memo_answers PK is (memo_id, question_id)');
+select col_is_pk('public', 'memo_participants', array['memo_id', 'email'], 'memo_participants PK is (memo_id, email)');
+select col_is_pk('public', 'memo_calls', 'memo_id', 'memo_calls PK is memo_id (one call per memo)');
+select col_is_pk('public', 'calendar_links', 'user_id', 'calendar_links PK is user_id (one link per person)');
+select col_is_pk('public', 'invitations', 'email', 'invitations PK is email');
 
 -- FK names are what src/lib/database.types.ts declares (supabase-js embeds use them).
 select results_eq(
   $$ select (conrelid::regclass::text || '.' || conname::text) collate "default" from pg_constraint
      where contype = 'f' and connamespace = 'public'::regnamespace order by 1 $$,
   array[
+    'calendar_links.calendar_links_user_id_fkey',
+    'invitations.invitations_invited_by_fkey',
     'memo_answers.memo_answers_answered_by_fkey',
     'memo_answers.memo_answers_memo_id_fkey',
+    'memo_calls.memo_calls_memo_id_fkey',
+    'memo_participants.memo_participants_added_by_fkey',
+    'memo_participants.memo_participants_memo_id_fkey',
     'memos.memos_author_id_fkey',
     'memos.memos_decider_id_fkey',
     'profiles.profiles_id_fkey',
@@ -53,14 +64,19 @@ select results_eq(
   $$ select (conname::text || ' ' || confdeltype::text) collate "default" from pg_constraint
      where contype = 'f' and connamespace = 'public'::regnamespace order by 1 $$,
   array[
+    'calendar_links_user_id_fkey c',
+    'invitations_invited_by_fkey n',
     'memo_answers_answered_by_fkey r',
     'memo_answers_memo_id_fkey c',
+    'memo_calls_memo_id_fkey c',
+    'memo_participants_added_by_fkey n',
+    'memo_participants_memo_id_fkey c',
     'memos_author_id_fkey r',
     'memos_decider_id_fkey n',
     'profiles_id_fkey c',
     'team_members_user_id_fkey c'
   ],
-  'delete rules: answers/profiles/memberships cascade, authors restrict, deciders set null'
+  'delete rules: answers/profiles/memberships/calls cascade, authors restrict, deciders and inviters set null'
 );
 
 -- ---------- indexes ----------
@@ -87,6 +103,12 @@ select policies_are('public', 'team_members', array['team_members_select', 'team
 select policies_are('public', 'memos', array['memos_select', 'memos_insert', 'memos_update', 'memos_delete'], 'memos policies');
 select policies_are('public', 'memo_answers',
   array['memo_answers_select', 'memo_answers_insert', 'memo_answers_update', 'memo_answers_delete'], 'memo_answers policies');
+select policies_are('public', 'invitations', array['invitations_admin'], 'invitations policy (admins only)');
+select policies_are('public', 'memo_participants',
+  array['memo_participants_select', 'memo_participants_insert', 'memo_participants_delete'], 'memo_participants policies');
+select policies_are('public', 'memo_calls',
+  array['memo_calls_select', 'memo_calls_insert', 'memo_calls_update', 'memo_calls_delete'], 'memo_calls policies');
+select policies_are('public', 'calendar_links', array['calendar_links_own'], 'calendar_links policy (owner only)');
 select is_empty(
   $$ select policyname from pg_policies where schemaname in ('public', 'private') and roles <> '{authenticated}' $$,
   'every policy is for authenticated only'
@@ -103,6 +125,12 @@ select table_privs_are('public', 'profiles', 'anon', array[]::text[], 'anon: not
 select table_privs_are('public', 'team_members', 'anon', array[]::text[], 'anon: nothing on team_members');
 select table_privs_are('public', 'memos', 'anon', array[]::text[], 'anon: nothing on memos');
 select table_privs_are('public', 'memo_answers', 'anon', array[]::text[], 'anon: nothing on memo_answers');
+select is_empty(
+  $$ select t from unnest(array['public.invitations', 'public.memo_participants', 'public.memo_calls', 'public.calendar_links']) t
+     where has_table_privilege('anon', t, 'SELECT, INSERT, UPDATE, DELETE') $$,
+  'anon: nothing on invitations, participants, calls, calendar links'
+);
+select table_privs_are('public', 'memo_participants', 'authenticated', array['SELECT', 'INSERT', 'DELETE'], 'authenticated: read/insert/delete memo_participants');
 select table_privs_are('public', 'profiles', 'authenticated', array['SELECT', 'UPDATE'], 'authenticated: read/update profiles');
 select table_privs_are('public', 'team_members', 'authenticated', array['SELECT', 'INSERT', 'DELETE'], 'authenticated: read/insert/delete team_members');
 select table_privs_are('public', 'memos', 'authenticated', array['SELECT', 'INSERT', 'UPDATE', 'DELETE'], 'authenticated: CRUD on memos');
@@ -111,7 +139,8 @@ select table_privs_are('private', 'allowed_email_domains', 'authenticated', arra
 select table_privs_are('private', 'bootstrap_admins', 'authenticated', array[]::text[], 'authenticated: nothing on bootstrap_admins');
 select table_privs_are('private', 'allowed_email_domains', 'anon', array[]::text[], 'anon: nothing on allowed_email_domains');
 select is_empty(
-  $$ select t from unnest(array['public.profiles', 'public.team_members', 'public.memos', 'public.memo_answers']) t
+  $$ select t from unnest(array['public.profiles', 'public.team_members', 'public.memos', 'public.memo_answers',
+                                'public.invitations', 'public.memo_participants', 'public.memo_calls', 'public.calendar_links']) t
      where not has_table_privilege('service_role', t, 'SELECT, INSERT, UPDATE, DELETE') $$,
   'service_role keeps full access to the app tables'
 );
@@ -123,7 +152,7 @@ select results_eq(
   $$ select p.proname::text collate "default" from pg_proc p
      where p.pronamespace = 'private'::regnamespace and has_function_privilege('authenticated', p.oid, 'EXECUTE')
      order by 1 $$,
-  array['can_answer', 'can_read_memo', 'is_admin', 'is_team_member', 'my_teams'],
+  array['can_answer', 'can_manage_call', 'can_read_memo', 'is_admin', 'is_team_member', 'my_call_memos', 'my_teams'],
   'authenticated may execute the RLS helpers and nothing else in private'
 );
 select is_empty(
@@ -131,9 +160,26 @@ select is_empty(
      where p.pronamespace = 'private'::regnamespace and has_function_privilege('anon', p.oid, 'EXECUTE') $$,
   'anon (and PUBLIC) may execute nothing in private'
 );
+select results_eq(
+  $$ select p.proname::text collate "default" from pg_proc p where p.pronamespace = 'public'::regnamespace order by 1 $$,
+  array['can_sign_in', 'complete_onboarding', 'create_call_memo'],
+  'public has exactly the three API functions'
+);
+select results_eq(
+  $$ select p.proname::text collate "default" from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1 $$,
+  array['can_sign_in'],
+  'anon may only call can_sign_in()'
+);
+select is_definer('public', 'can_sign_in', array['text'], 'can_sign_in() is security definer (reads private lists)');
+select isnt_definer('public', 'create_call_memo',
+  array['team_key', 'memo_lang', 'text', 'jsonb', 'timestamp with time zone', 'text', 'text[]'],
+  'create_call_memo() runs as the caller (RLS applies)');
 select is_empty(
-  $$ select p.proname from pg_proc p where p.pronamespace = 'public'::regnamespace $$,
-  'no functions in public (nothing callable through the API)'
+  $$ select p.proname from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and not coalesce(p.proconfig @> array['search_path=""'], false) $$,
+  'every public function pins search_path to empty'
 );
 select is_definer('private', 'is_admin', array[]::name[], 'is_admin() is security definer');
 select is_definer('private', 'is_team_member', array['team_key'], 'is_team_member() is security definer');

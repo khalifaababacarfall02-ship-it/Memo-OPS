@@ -1,8 +1,11 @@
-// List view: every memo the visitor may see (RLS decides), filtered by team
+// List view: the visitor's next calls (calendar + memos of calls they are in),
+// then every memo the visitor may see (RLS decides), filtered by team
 // (hero pills), status (tabs) and search. Params: team, status, q, limit (§4 of
 // docs/ARCHITECTURE.md); invalid values are ignored.
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { UpcomingCalls, UpcomingCallsFallback } from "@/components/calls/UpcomingCalls";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { type PillKey, TeamPills } from "@/components/shell/TeamPills";
 import { ListRail } from "@/components/list/ListRail";
@@ -22,6 +25,7 @@ import { TEAMS, type Team, fmt, heroTag, teamLabel, ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
 import { loadListData } from "@/lib/memo/list";
 import "@/styles/list.css";
+import "@/styles/calls.css";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<RawSearchParams> }): Promise<Metadata> {
   const { team } = parseListParams(await searchParams);
@@ -67,6 +71,9 @@ export default async function ListPage({ searchParams }: { searchParams: Promise
     >
       <main className="sheet lst-sheet">
         <RefreshOnRestore token={crypto.randomUUID()} />
+        <Suspense fallback={<UpcomingCallsFallback lang={lang} />}>
+          <UpcomingCalls lang={lang} viewer={viewer} team={filters.team} />
+        </Suspense>
         <ListSearch filters={filters} label={u.searchL} placeholder={u.searchPh} />
         <div className="lst-bar">
           <StatusTabs lang={lang} filters={filters} />

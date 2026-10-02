@@ -1,4 +1,5 @@
-// Database types for supabase-js, matching supabase/migrations/20260928120000_memo_app.sql
+// Database types for supabase-js, matching supabase/migrations/ (20260928120000_memo_app.sql
+// and the later rounds)
 // (same shape as `supabase gen types`: Insert makes optional what has a default or is nullable).
 // Keep in sync with the SQL (or regenerate with `npm run db:types` against a
 // running Supabase and keep the aliases at the bottom).
@@ -10,6 +11,8 @@
 //   the workflow (src/lib/memo/model.ts); decided_at, updated_at, search_text are derived.
 // - memo_answers: answered_by = the caller; only the decision maker (or an admin) while to_decide.
 // - profiles: id and email never change; only admins change is_admin.
+// - invitations: admins only. memo_participants / memo_calls: read with the memo, written
+//   by its author (or an admin) while draft / to_decide. calendar_links: its owner only.
 // Error messages: see the header of the migration.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -26,6 +29,7 @@ export type Database = {
           asana_user_gid: string | null;
           created_at: string;
           updated_at: string;
+          onboarded_at: string | null;
         };
         Insert: {
           id: string;
@@ -35,6 +39,7 @@ export type Database = {
           asana_user_gid?: string | null;
           created_at?: string;
           updated_at?: string;
+          onboarded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -44,6 +49,7 @@ export type Database = {
           asana_user_gid?: string | null;
           created_at?: string;
           updated_at?: string;
+          onboarded_at?: string | null;
         };
         Relationships: [];
       };
@@ -178,12 +184,151 @@ export type Database = {
           },
         ];
       };
+      invitations: {
+        Row: {
+          email: string;
+          team: Database["public"]["Enums"]["team_key"] | null;
+          invited_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          team?: Database["public"]["Enums"]["team_key"] | null;
+          invited_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          team?: Database["public"]["Enums"]["team_key"] | null;
+          invited_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invitations_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      memo_participants: {
+        Row: {
+          memo_id: string;
+          email: string;
+          added_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          memo_id: string;
+          email: string;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          memo_id?: string;
+          email?: string;
+          added_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memo_participants_memo_id_fkey";
+            columns: ["memo_id"];
+            isOneToOne: false;
+            referencedRelation: "memos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memo_participants_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      memo_calls: {
+        Row: {
+          memo_id: string;
+          starts_at: string | null;
+          event_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          memo_id: string;
+          starts_at?: string | null;
+          event_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          memo_id?: string;
+          starts_at?: string | null;
+          event_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memo_calls_memo_id_fkey";
+            columns: ["memo_id"];
+            isOneToOne: true;
+            referencedRelation: "memos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      calendar_links: {
+        Row: {
+          user_id: string;
+          url: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          url: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          url?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "calendar_links_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      can_sign_in: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
+      complete_onboarding: {
+        Args: { p_full_name: string; p_team?: Database["public"]["Enums"]["team_key"] | null };
+        Returns: undefined;
+      };
+      create_call_memo: {
+        Args: {
+          p_team: Database["public"]["Enums"]["team_key"];
+          p_lang: Database["public"]["Enums"]["memo_lang"];
+          p_title: string;
+          p_content: Json;
+          p_starts_at: string | null;
+          p_event_id: string | null;
+          p_emails: string[] | null;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       team_key: "ops" | "growth" | "crea" | "sav" | "finance" | "mini";
@@ -205,3 +350,6 @@ export type ProfileRow = Tables<"profiles">;
 export type MemoRow = Tables<"memos">;
 export type MemoAnswerRow = Tables<"memo_answers">;
 export type TeamMemberRow = Tables<"team_members">;
+export type InvitationRow = Tables<"invitations">;
+export type MemoParticipantRow = Tables<"memo_participants">;
+export type MemoCallRow = Tables<"memo_calls">;

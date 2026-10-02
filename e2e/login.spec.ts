@@ -41,7 +41,7 @@ test("signed out: the list sends you to /login, and back after signing in", asyn
   await expect(page.locator(".acct")).toHaveCount(0);
 
   const field = page.getByLabel("Ton adresse e-mail");
-  await expect(field).toHaveAttribute("placeholder", "prenom@boxhero.test");
+  await expect(field).toHaveAttribute("placeholder", "prenom@gmail.com");
 
   const since = Date.now();
   await field.fill(USER.toUpperCase());
@@ -76,13 +76,13 @@ test("bad addresses get a clear message and keep what was typed", async ({ page 
 
   await field.fill("ls-someone@gmail.com");
   await send.click();
-  await expect(page.locator("#login-msg")).toHaveText("Utilise ton adresse BoxHero.");
+  await expect(page.locator("#login-msg")).toHaveText("Cette adresse n’est pas invitée. Demande à Khalifa ou Mattéo de t’ajouter (page L’équipe).");
   await expect(field).toHaveValue("ls-someone@gmail.com");
 
-  // A look-alike domain is not the domain.
+  // A look-alike domain is not the domain (nor an invitation).
   await field.fill("ls-someone@boxhero.test.evil.com");
   await send.click();
-  await expect(page.locator("#login-msg")).toHaveText("Utilise ton adresse BoxHero.");
+  await expect(page.locator("#login-msg")).toHaveText("Cette adresse n’est pas invitée. Demande à Khalifa ou Mattéo de t’ajouter (page L’équipe).");
 });
 
 test("errors from the URL", async ({ page }) => {
@@ -106,7 +106,7 @@ test("FR/EN switch on the login page", async ({ page }) => {
   await page.goto("/login");
   await page.locator(".lang button[data-l=en]").click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByLabel("Your email address")).toHaveAttribute("placeholder", "firstname@boxhero.test");
+  await expect(page.getByLabel("Your email address")).toHaveAttribute("placeholder", "firstname@gmail.com");
   await page.getByLabel("Your email address").fill("nope");
   await page.getByRole("button", { name: "Send me the link" }).click();
   await expect(page.locator("#login-msg")).toHaveText("That doesn’t look like an email address.");

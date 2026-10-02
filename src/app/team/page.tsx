@@ -1,14 +1,16 @@
 // /team: who sees what. Everyone sees every person with their teams and admin
 // flag, and edits their own display name; admins also change teams and admin
-// rights. RLS and the guard triggers are the real gate (see TeamSheet).
+// rights, and invite people (InviteSection). RLS and the guard triggers are the
+// real gate (see TeamSheet).
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppFrame } from "@/components/shell/AppFrame";
 import { TeamPills } from "@/components/shell/TeamPills";
+import { InviteSection, type PendingInvitation } from "@/components/team/InviteSection";
 import { TeamSheet } from "@/components/team/TeamSheet";
 import { sortPeople, toPerson } from "@/components/team/team-logic";
 import { requireViewer } from "@/lib/auth/viewer";
-import { TEAMS, doc, ui } from "@/lib/content";
+import { TEAMS, doc, isTeam, ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 import "@/styles/team.css";
@@ -31,6 +33,17 @@ export default async function TeamPage() {
   if (error) throw new Error(`Could not load the team (${error.code}): ${error.message}`);
   const people = sortPeople(data.map(toPerson), lang);
 
+  // Admins: the invitations of people who have not signed in yet.
+  let pending: PendingInvitation[] = [];
+  if (viewer.isAdmin) {
+    const inv = await supabase.from("invitations").select("email, team").order("created_at").order("email");
+    if (inv.error) throw new Error(`Could not load the invitations (${inv.error.code}): ${inv.error.message}`);
+    const members = new Set(people.map((p) => p.email));
+    pending = inv.data
+      .filter((i) => !members.has(i.email))
+      .map((i) => ({ email: i.email, team: isTeam(i.team) ? i.team : null }));
+  }
+
   return (
     <AppFrame
       lang={lang}
@@ -52,6 +65,7 @@ export default async function TeamPage() {
           canEdit={viewer.isAdmin}
           people={people}
         />
+        {viewer.isAdmin && <InviteSection lang={lang} pending={pending} members={people.map((p) => p.email)} />}
       </main>
       <aside className="rail">
         <div className="panel">

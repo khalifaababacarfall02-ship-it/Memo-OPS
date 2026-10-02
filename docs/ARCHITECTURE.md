@@ -50,10 +50,14 @@ is the ad mini memo), `memo_lang` = `fr | en`, `memo_status` = `draft | to_decid
 
 | table | columns |
 |---|---|
-| `profiles` | `id` (= auth.users.id), `email`, `full_name`, `is_admin`, `asana_user_gid`, `created_at`, `updated_at` |
+| `profiles` | `id` (= auth.users.id), `email`, `full_name`, `is_admin`, `asana_user_gid`, `created_at`, `updated_at`, `onboarded_at` (set at the first sign-in, `/welcome`) |
 | `team_members` | `user_id` → profiles, `team`, `created_at`; PK (user_id, team) |
 | `memos` | `id`, `team`, `lang`, `title`, `author_id` → profiles, `decider_id` → profiles, `status`, `content jsonb`, `asana_task_gid`, `search_text`, `decided_at`, `created_at`, `updated_at` |
 | `memo_answers` | `memo_id` → memos (cascade), `question_id` (id of a question in `content.qs`), `answer`, `answered_by` → profiles, `created_at`, `updated_at`; PK (memo_id, question_id) |
+| `invitations` | `email` (PK, lower case), `team` (starting pôle, null = they choose), `invited_by` → profiles, `created_at` — who may sign in, managed by admins on `/team` |
+| `memo_participants` | `memo_id` → memos (cascade), `email`, `added_by`, `created_at`; PK (memo_id, email) — the people of the memo's call (by email: they may not have signed in yet) |
+| `memo_calls` | `memo_id` (PK) → memos (cascade), `starts_at`, `event_id` (calendar event: iCal UID, `\|<original start>` for one occurrence of a repeating event), `updated_at` — kept out of `memos` so it never bumps `memos.updated_at` |
+| `calendar_links` | `user_id` (PK) → profiles (cascade), `url` (https, the person's secret iCal address), `updated_at` |
 | `private.allowed_email_domains` | `domain` — who may sign up (not exposed through the API) |
 | `private.allowed_emails` | `email` — single addresses allowed to sign up outside those domains |
 | `private.bootstrap_admins` | `email` — profiles created with these emails get `is_admin = true` (Mattéo, Khalifa) |
@@ -79,17 +83,24 @@ string value of `content`. The list searches it with `ilike '%…%'` (trigram in
 Helper functions live in schema `private` (not exposed by the API), are
 `security definer`, `stable`, with `set search_path = ''`:
 `private.is_admin()`, `private.is_team_member(team_key)`, `private.can_read_memo(uuid)`,
-`private.can_answer(uuid)`, `private.my_teams()` (used by the memos read policy, evaluated once
-per statement). Policies call `(select auth.uid())` / `(select private.is_admin())`.
+`private.can_answer(uuid)`, `private.my_teams()` and `private.my_call_memos()` (used by the memos
+read policy, evaluated once per statement), `private.can_manage_call(uuid)`. Policies call
+`(select auth.uid())` / `(select private.is_admin())`.
 
 - **profiles**: every signed-in user reads all profiles (to pick a decision maker).
   A user updates their own `full_name`; only admins change `is_admin`; `id`/`email` are immutable
   (guard trigger). No insert/delete through the API (created by the auth trigger, cascade on user delete).
 - **team_members**: everyone signed in reads; only admins insert/delete.
-- **memos**: read if admin, OR member of the memo's team, OR author, OR decision maker.
+- **memos**: read if admin, OR member of the memo's team, OR author, OR decision maker, OR one of
+  the people of its call (`memo_participants.email` = the caller's profile email).
   Insert: `author_id = auth.uid()`, `status = 'draft'`, and the memo's team is one of the author's
   teams (admins: any team) — a decision maker may be anyone. Update: author, decision maker or admin
   (column/transition rules in the guard trigger below). Delete: author while `draft`, or admin.
+- **invitations**: admins only (read, add, remove).
+- **memo_participants**, **memo_calls**: read with the memo (`can_read_memo`); added, changed and
+  removed by the author (or an admin) while the memo is `draft` or `to_decide` (`can_manage_call`).
+  At most 50 people per call (trigger).
+- **calendar_links**: the owner only — admins cannot read anyone's link.
 - **memo_answers**: read if the memo is readable. Insert/update/delete only through
   `private.can_answer(memo_id)`: caller is the memo's decision maker (or an admin) and the memo is
   `to_decide`; `answered_by` must be `auth.uid()`.
@@ -141,19 +152,27 @@ copy); the value goes only through `.ilike()`. A typed `*` becomes `_` because P
 
 ### Sign-up restriction
 
-`auth.users` BEFORE INSERT trigger rejects emails whose domain is not in
-`private.allowed_email_domains` and that are not listed one by one in `private.allowed_emails`
-(fail closed: both empty = nobody can sign up). `ALLOWED_EMAIL_DOMAINS` mirrors both lists
-(domains and/or exact addresses).
+BoxHero uses personal addresses (Gmail, Proton): admins invite each person on `/team`
+(`public.invitations`, optionally with a starting pôle). `auth.users` BEFORE INSERT trigger rejects
+emails that are not invited, not listed in `private.allowed_emails` and whose domain is not in
+`private.allowed_email_domains` (fail closed: all empty = nobody can sign up).
 AFTER INSERT creates the `profiles` row (`full_name` from metadata or the email's local part,
-`is_admin` from `private.bootstrap_admins`). The app also checks `ALLOWED_EMAIL_DOMAINS`
-before calling Supabase, to show a friendly message.
+`is_admin` from `private.bootstrap_admins`) and the membership of the invitation's pôle.
+The login form asks `public.can_sign_in(email)` first (callable without a session: yes for an
+invited / allowed address or an existing account) to show a friendly message and send nothing
+otherwise. It answers for one address at a time; that someone is invited is not a secret worth
+more than that.
+
+**First sign-in.** Until `profiles.onboarded_at` is set, `requireViewer()` sends the person to
+`/welcome`: their name, and their pôle when nobody gave them one (admins may skip it), saved by
+`public.complete_onboarding(name, team)` (security definer: the only way a non-admin joins a team,
+and only once). Then they land on `/?team=<their pôle>` (or where they were going).
 
 ## 3. Auth flow
 
 Email magic link (passwordless), `@supabase/ssr` cookies.
 
-1. `/login` → server action `sendMagicLink` validates the email + domain, stores the wanted path
+1. `/login` → server action `sendMagicLink` validates the email (`can_sign_in`), stores the wanted path
    in the httpOnly cookie `bxh-next` (1 h), then
    `signInWithOtp({ email, options: { emailRedirectTo: <request origin>/auth/confirm } })`.
    `emailRedirectTo` has **no query string**: the email templates build
@@ -174,23 +193,26 @@ Email magic link (passwordless), `@supabase/ssr` cookies.
    own viewer check shows the error page) and `/api/*` answers 503 `{ error: "unavailable" }`.
 5. `/auth/signout` (POST) signs out this browser only.
 
-Supabase Auth hides the trigger's message when it rejects a domain: `signInWithOtp` returns a 500
-"Database error saving new user". The app checks `ALLOWED_EMAIL_DOMAINS` first and maps that 500
-to `badDomain`. Keep the env var and the two `private.allowed_*` tables in sync.
+Supabase Auth hides the trigger's message when it rejects an address: `signInWithOtp` returns a
+500 "Database error saving new user". The app asks `can_sign_in` first and maps that 500 to
+`badDomain` anyway.
 
 `getViewer()` (`src/lib/auth/viewer.ts`, request-cached) returns
-`{ id, email, fullName, isAdmin, teams }` or `null`; `requireViewer()` redirects to `/login`.
+`{ id, email, fullName, isAdmin, teams, onboarded }` or `null`; `requireViewer()` redirects to
+`/login`, and to `/welcome` until the first sign-in is done.
 
 ## 4. Routes
 
 | route | what |
 |---|---|
-| `/` | List view. Hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
+| `/` | List view. On top, "Mes prochains appels" (calendar + memos of calls the viewer is in, in a `<Suspense>`), then the hero with team pills (+ "All") as filter, status tabs, search, memo rows. Rail: new memo, "waiting for my decision", my memos. Params: `team`, `status` (`all` = everything but archived, default), `q`, `limit` (200 per step, "Show more"). |
 | `/memos/new?team=…[&example=1]` | Blank (or example) memo in the editor. Nothing is stored until the first edit; then the row is inserted and the editor moves to `/memos/<id>` (`router.replace`, handing over its save session so nothing typed meanwhile is lost). A non-member is sent to their first team; someone with no team sees `ui.noTeam`. |
 | `/memos/[id]` | Editor / reader for one memo (permissions from the workflow rules). |
-| `/team` | Admins: assign teams and admin rights. Everyone: edit their display name. |
+| `/team` | Admins: assign teams and admin rights, invite people. Everyone: edit their display name. |
+| `/welcome` | First sign-in: name and pôle. |
 | `/login`, `/auth/confirm`, `/auth/signout` | Auth. |
 | `POST /api/asana` | Phase 2: create/update the Asana task (server-side token), see below. |
+| `POST /api/slack` | DM the memo to the people of its call, see below. |
 
 ### How the editor saves (`src/lib/memo/editor/`)
 
@@ -262,3 +284,25 @@ Returns `{ gid, url, assigned, updated }`; errors `{ error }`: `badRequest` 400,
   (the decision buttons cannot be clickjacked), nosniff, referrer policy, HSTS, permissions policy.
 - Redirect targets (`next`) are validated as same-origin paths.
 - Search input is escaped before it reaches PostgREST filters.
+
+### The call: people, Slack, calendar
+
+- **People of the call** (rail panel "L'appel", `src/components/memo/CallPanel.tsx`): the author
+  (or an admin) sets the date and adds people by name (a profile) or by address; written straight to
+  `memo_calls` / `memo_participants` with the browser client (RLS), outside the editor's autosave.
+- **`POST /api/slack`** `{ memoId }`: author, decision maker or admin. Sends a direct message from
+  the Slack app to each person of the call and the decision maker (except the sender), found by email
+  (`users.lookupByEmail`), with a button to the memo; the call time is a Slack date token, so each
+  person reads it in their own time zone. Returns `{ sent, missing, failed }`; errors `{ error }`:
+  `auth` 401, `badRequest` 400, `notAllowed` 403, `notFound` 404, `nobody` 422, `notConfigured` 503
+  (no `SLACK_BOT_TOKEN`: the button stays and says so), `slackAuth` / `slack` 502. The token stays on
+  the server. App manifest: `slack/manifest.json` (scopes `chat:write`, `users:read`,
+  `users:read.email`). Code: `src/lib/slack/`.
+- **Calendar** (`src/lib/calendar/`): each person saves their calendar's secret iCal address (Google
+  Calendar "Secret address in iCal format", a Proton Calendar share link, Outlook, iCloud). The server
+  fetches it — only those providers' hosts, https, redirects checked, 8 s timeout, 8 MB cap, 2 min
+  in-memory cache — and lists the next 14 days (ical.js: repeating events, moved / cancelled
+  occurrences, the file's time zones; all-day events left out). "Prepare the memo" calls
+  `public.create_call_memo()` (security invoker: memo + call + people in one transaction, as the
+  caller; the caller's memo for the same event is reopened instead). Tests only:
+  `CALENDAR_TEST_HOSTS` allows a local mock.

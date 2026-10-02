@@ -5,7 +5,9 @@
 who decides, and get their answers in the app.
 
 Next.js 16 (App Router, TypeScript) on **Vercel** · **Supabase** (Postgres,
-magic-link Auth restricted to BoxHero emails, Row Level Security).
+magic-link Auth for invited people only, Row Level Security). Memos are for calls:
+the people of the call read the memo before it, get it on **Slack**, and everyone
+sees their next calls from their **calendar** (Google or Proton) on the home page.
 The design is the original prototype's, unchanged. How it works:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -15,7 +17,8 @@ The design is the original prototype's, unchanged. How it works:
 |---|---|
 | `content/boxhero.json` | **Every text** (FR + EN), the examples, the guide, team colours and cover images. Edit it to change copy — no component changes needed. |
 | `public/covers/` | Team cover images (hero + PDF cover). |
-| `src/app/` | Pages: `/` list, `/memos/new`, `/memos/[id]`, `/team`, `/login`. |
+| `src/app/` | Pages: `/` next calls + list, `/memos/new`, `/memos/[id]`, `/team`, `/welcome` (first sign-in), `/login`. |
+| `slack/manifest.json` | The Slack app to install (sends memos by direct message). |
 | `supabase/migrations/` | Database schema, RLS policies, workflow rules. |
 | `supabase/templates/` | The sign-in emails. |
 
@@ -24,8 +27,11 @@ Statuses: **Brouillon / Draft → À décider / To decide → Décidé / Decided
 maker answers each question in the app and marks it decided.
 
 Who sees what (enforced by the database): everyone sees their teams' memos plus
-the ones they wrote or must decide; admins (Mattéo, Khalifa) see everything and
-manage teams on `/team`.
+the ones they wrote, must decide, or whose call they are in; admins (Mattéo,
+Khalifa) see everything, invite people and manage teams on `/team`.
+
+The first sign-in asks the person's name and pôle (unless the invitation gave
+one), then opens that pôle's memos.
 
 ## Run it locally
 
@@ -39,7 +45,8 @@ npm run dev                       # http://localhost:3000
 ```
 
 Sign in with any `@boxhero.test` address (the local seed allows that domain;
-`matteo@boxhero.test` and `khalifa@boxhero.test` are admins). The email arrives
+`matteo@boxhero.test` and `khalifa@boxhero.test` are admins). The first sign-in
+asks for a name and a pôle. The email arrives
 in Mailpit: http://127.0.0.1:54324.
 
 ## Tests
@@ -66,25 +73,28 @@ tests, build and the database tests on every pull request.
    npx supabase link --project-ref <project-ref>
    npx supabase db push
    ```
-3. **Before anyone signs in**, in *SQL Editor*, allow the BoxHero email domain(s)
-   — and/or single addresses outside it — and name the first admins (lower case).
-   Until then nobody can sign up.
+3. **Before anyone signs in**, in *SQL Editor*, invite the first admin and make
+   them admin (lower case). Everyone else is then invited from `/team` in the app.
    ```sql
-   insert into private.allowed_email_domains (domain) values ('<boxhero-domain>') on conflict do nothing;
-   insert into private.allowed_emails (email) values ('<one-person@another-domain>') on conflict do nothing;  -- optional
-   insert into private.bootstrap_admins (email) values ('<matteo-email>'), ('<khalifa-email>') on conflict do nothing;
+   insert into public.invitations (email) values ('<khalifa-email>') on conflict do nothing;
+   insert into private.bootstrap_admins (email) values ('<khalifa-email>') on conflict do nothing;
    ```
 4. *Authentication → URL Configuration*
    - Site URL: `https://<production-domain>`
    - Redirect URLs: `https://<production-domain>/auth/confirm`,
      `https://*-<vercel-team-slug>.vercel.app/auth/confirm` (preview deployments),
      `http://localhost:3000/auth/confirm`
-5. *Authentication → Emails → Templates*: paste `supabase/templates/magic_link.html`
+5. *Authentication → Emails → SMTP Settings*: set up a sender. Supabase's
+   built-in one sends **2 emails per hour for the whole project**: not enough for
+   a team. With a Gmail account: create an app password (Google Account →
+   Security → 2-Step Verification → App passwords), then host `smtp.gmail.com`,
+   port `465`, user and sender = that Gmail address, password = the app password.
+   Then review *Rate Limits*.
+6. *Authentication → Emails → Templates*: paste `supabase/templates/magic_link.html`
    into **Magic Link** and `supabase/templates/confirmation.html` into **Confirm signup**
    (subjects as in `supabase/config.toml`). Both links are
-   `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`, so a link works on any device.
-6. *Authentication → Emails → SMTP*: set up a custom SMTP sender (Supabase's
-   built-in sender only allows a few emails per hour), then review *Rate Limits*.
+   `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`, so a link works on any device
+   (with the default template, it only works in the browser that asked for it).
 
 ### 2. Vercel
 
@@ -96,8 +106,8 @@ tests, build and the database tests on every pull request.
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase *Project Settings → API* URL |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the publishable key (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
-   | `ALLOWED_EMAIL_DOMAINS` | same list as step 1.3, comma-separated: domains and/or exact addresses |
    | `NEXT_PUBLIC_SITE_URL` | optional, production URL |
+   | `SLACK_BOT_TOKEN` | optional: the Slack app's bot token (see below) |
    | `ASANA_ACCESS_TOKEN`, `ASANA_PROJECT_GID` | phase 2, optional (see below) |
 
    No secret is exposed to the browser: the publishable key is public by design
@@ -106,9 +116,33 @@ tests, build and the database tests on every pull request.
 
 ### Day to day
 
-- **Add someone**: they sign in with their BoxHero email, then an admin ticks their teams on `/team`.
+- **Add someone**: an admin invites their email (Gmail, Proton…) on `/team`, with their pôle or not;
+  they sign in at the app's address with it. Admin rights: tick *Admin* on `/team` once they signed in.
 - **Change texts, examples, colours**: edit `content/boxhero.json` (keep FR and EN keys in sync — a test checks it).
 - **Database changes**: add a new file in `supabase/migrations/`, test with `npm run db:test`, deploy with `npx supabase db push`.
+
+## Slack: send the memo to the people of the call
+
+In the memo, the *L'appel* panel holds the call's date and people. **Send on
+Slack** sends each of them (and the decision maker) a direct message with a
+button to the memo. To connect it (a Slack admin, once):
+
+1. https://api.slack.com/apps → *Create New App* → *From a manifest* → pick the
+   BoxHero workspace → paste `slack/manifest.json` → *Create*.
+2. *Install to Workspace* → *Allow*.
+3. *OAuth & Permissions* → copy the *Bot User OAuth Token* (`xoxb-…`) into
+   Vercel as `SLACK_BOT_TOKEN` (Production and Preview), then redeploy.
+
+People are found on Slack by the email they use in the app.
+
+## Calendar on the home page
+
+*Mes prochains appels* lists the next 14 days of the person's calendar and the
+memos of calls they are in; *Prepare the memo* creates the memo of an event with
+its title, date and attendees. Each person connects their own calendar once
+(*Connecter mon agenda*): Google Calendar's *Secret address in iCal format*, or a
+Proton Calendar share link. The link stays private (only its owner and the server
+read it).
 
 ## Phase 2: Send to Asana
 

@@ -8,7 +8,7 @@ import { isAsanaEnabled } from "@/lib/asana/config";
 import { requireViewer } from "@/lib/auth/viewer";
 import { ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
-import { isUuid, loadMemo, loadRail, nowIso } from "@/lib/memo/editor/load";
+import { isUuid, loadCall, loadMemo, loadRail, nowIso } from "@/lib/memo/editor/load";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -28,7 +28,7 @@ export default async function MemoPage({ params }: Params) {
   const viewer = await requireViewer(`/memos/${encodeURIComponent(id)}`);
   if (!isUuid(id)) notFound();
   const uiLang = await getLang();
-  const [found, rail] = await Promise.all([loadMemo(id, uiLang), loadRail(viewer.id, uiLang)]);
+  const [found, rail, call] = await Promise.all([loadMemo(id, uiLang), loadRail(viewer.id, uiLang), loadCall(id)]);
   if (!found) notFound();
 
   return (
@@ -43,6 +43,7 @@ export default async function MemoPage({ params }: Params) {
       mine={rail.mine}
       openedAt={nowIso()}
       asanaEnabled={isAsanaEnabled()}
+      call={call}
     />
   );
 }

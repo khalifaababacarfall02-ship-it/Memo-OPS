@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { TEAMS, type Team, isTeam } from "@/lib/content";
 import { createClient } from "@/lib/supabase/server";
-import { loginPath } from "./redirect";
+import { loginPath, welcomePath } from "./redirect";
 
 export type Viewer = {
   id: string;
@@ -16,6 +16,8 @@ export type Viewer = {
   isAdmin: boolean;
   /** Teams the person belongs to, in pill order. */
   teams: Team[];
+  /** Gave their name (and pôle) at the first sign-in: /welcome is done. */
+  onboarded: boolean;
 };
 
 type ViewerState = { kind: "signedOut" } | { kind: "noProfile" } | { kind: "ok"; viewer: Viewer };
@@ -31,7 +33,7 @@ const loadViewer = cache(async (): Promise<ViewerState> => {
 
   const { data: profile, error: dbError } = await supabase
     .from("profiles")
-    .select("id, email, full_name, is_admin, team_members(team)")
+    .select("id, email, full_name, is_admin, onboarded_at, team_members(team)")
     .eq("id", userId)
     .maybeSingle();
   if (dbError) throw new Error(`Could not load the profile (${dbError.code}): ${dbError.message}`);
@@ -47,6 +49,7 @@ const loadViewer = cache(async (): Promise<ViewerState> => {
       fullName: profile.full_name,
       isAdmin: profile.is_admin,
       teams: TEAMS.filter((t) => teams.has(t)),
+      onboarded: profile.onboarded_at !== null,
     },
   };
 });
@@ -61,9 +64,14 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
  * The signed-in person, or a redirect to /login (then back to `nextPath`).
  * A session without a profile goes to /login?error=profile: the proxy lets a
  * signed-in visitor stay on a login page that shows an error, so no loop.
+ * Someone who has not given their name and pôle yet goes to /welcome first
+ * (then on to `nextPath`), unless `setup` is set (the /welcome page itself).
  */
-export async function requireViewer(nextPath?: string): Promise<Viewer> {
+export async function requireViewer(nextPath?: string, { setup = false }: { setup?: boolean } = {}): Promise<Viewer> {
   const state = await loadViewer();
-  if (state.kind === "ok") return state.viewer;
+  if (state.kind === "ok") {
+    if (!setup && !state.viewer.onboarded) redirect(welcomePath(nextPath));
+    return state.viewer;
+  }
   redirect(state.kind === "noProfile" ? loginPath(undefined, "profile") : loginPath(nextPath));
 }

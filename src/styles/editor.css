@@ -58,3 +58,23 @@
 .sheet.nt-card{padding:32px 36px 36px}
 @media (max-width:600px){.sheet.nt-card{padding:24px 18px 28px}}
 .nt-card a.btn{margin-top:16px;text-decoration:none}
+
+/* call panel ("L'appel"): the decision panel's labels and values, the people as
+   chips, an inline add field, then "Send on Slack". */
+.call .clab{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.call h3 + .clab,.call .cnote + .clab{margin-top:0}
+.call .cwhen,.call .caddrow input{width:100%;min-width:0;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:9px;padding:6px 10px;font:inherit;font-size:14px;min-height:36px}
+.call .cwhen:focus,.call .caddrow input:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent)}
+.call .cval{margin:0;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.call .cval.none{color:var(--muted);font-weight:500;font-size:14px}
+.call .cnote{margin:6px 0 10px;font-size:13px;color:var(--muted)}
+.call .cpeople{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.call .cpeople li{display:inline-flex;align-items:center;gap:2px;max-width:100%;background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 11px;font-size:13px;font-weight:600}
+.call .cpeople li:not(:has(.cx)){padding-right:11px}
+.call .cname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.call .cx{flex:none;border:0;background:none;color:var(--muted);font-size:17px;line-height:1;width:26px;height:26px;border-radius:50%;cursor:pointer}
+.call .cx:hover{background:var(--line);color:var(--ink)}
+.call .caddrow{display:flex;gap:6px}
+.call .cbtn{flex:none;border:0;border-radius:9px;background:var(--acc);color:#fff;font-weight:700;font-size:14px;padding:0 12px;cursor:pointer;min-height:36px}
+.call .cbtn:disabled{opacity:.5;cursor:default}
+.call .cslack{margin-top:14px}

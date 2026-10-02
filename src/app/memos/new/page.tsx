@@ -80,6 +80,7 @@ export default async function NewMemoPage({ searchParams }: Props) {
       example={example}
       openedAt={nowIso()}
       asanaEnabled={isAsanaEnabled()}
+      call={{ startsAt: null, participants: [] }}
     />
   );
 }

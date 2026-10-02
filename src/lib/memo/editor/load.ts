@@ -57,6 +57,18 @@ export const loadMemo = cache(async function loadMemo(
   };
 });
 
+/** The memo's call (date, people by email), as the viewer may see it. */
+export async function loadCall(id: string): Promise<{ startsAt: string | null; participants: string[] }> {
+  const supabase = await createClient();
+  const [callRes, peopleRes] = await Promise.all([
+    supabase.from("memo_calls").select("starts_at").eq("memo_id", id).maybeSingle(),
+    supabase.from("memo_participants").select("email").eq("memo_id", id).order("created_at").order("email"),
+  ]);
+  if (callRes.error) throw new Error(`Could not load the call (${callRes.error.code}): ${callRes.error.message}`);
+  if (peopleRes.error) throw new Error(`Could not load the call's people (${peopleRes.error.code}): ${peopleRes.error.message}`);
+  return { startsAt: callRes.data?.starts_at ?? null, participants: (peopleRes.data ?? []).map((p) => p.email) };
+}
+
 /** The rail's data: everyone who can decide, and the viewer's recent memos (not archived). */
 export async function loadRail(viewerId: string, uiLang: Lang): Promise<{ people: Person[]; mine: MineItem[] }> {
   const supabase = await createClient();

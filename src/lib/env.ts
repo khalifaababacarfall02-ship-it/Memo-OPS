@@ -1,6 +1,7 @@
 // Environment access. NEXT_PUBLIC_* values are inlined at build time and are
 // safe for the browser. Server-only settings are read where they are used:
-// ALLOWED_EMAIL_DOMAINS in src/lib/auth/allowed-email.ts, ASANA_* in src/lib/asana/.
+// ASANA_* in src/lib/asana/, SLACK_* in src/lib/slack/, CALENDAR_TEST_HOSTS (tests
+// only) in src/lib/calendar/link.ts. Who may sign in lives in the database (invitations).
 
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 

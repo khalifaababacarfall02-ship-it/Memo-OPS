@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loginPath, safeNext } from "./redirect";
+import { loginPath, safeNext, welcomePath } from "./redirect";
 
 describe("safeNext", () => {
   it("keeps same-origin paths with their query string", () => {
@@ -122,5 +122,19 @@ describe("loginPath", () => {
   it("round-trips through the query string", () => {
     const next = new URL(loginPath("/memos/new?team=ops&example=1"), "http://x").searchParams.get("next");
     expect(next).toBe("/memos/new?team=ops&example=1");
+  });
+});
+
+describe("welcomePath", () => {
+  it("is /welcome, with where the visitor was going", () => {
+    expect(welcomePath()).toBe("/welcome");
+    expect(welcomePath("/")).toBe("/welcome");
+    expect(welcomePath("/memos/3f0c?x=1")).toBe("/welcome?next=%2Fmemos%2F3f0c%3Fx%3D1");
+    expect(welcomePath("//evil.example.com")).toBe("/welcome");
+  });
+
+  it("never sends back to /welcome itself", () => {
+    expect(safeNext("/welcome")).toBe("/");
+    expect(welcomePath("/welcome?next=/team")).toBe("/welcome");
   });
 });

@@ -5,6 +5,7 @@
 export const LOGIN_PATH = "/login";
 export const CONFIRM_PATH = "/auth/confirm";
 export const SIGNOUT_PATH = "/auth/signout";
+export const WELCOME_PATH = "/welcome";
 
 /** Remembers `next` between the login form and /auth/confirm (the magic link has no query string). */
 export const NEXT_COOKIE = "bxh-next";
@@ -50,6 +51,12 @@ export function loginPath(next?: unknown, error?: string): string {
   return query ? `${LOGIN_PATH}?${query}` : LOGIN_PATH;
 }
 
+/** "/welcome", plus `next` when it is not "/" (the first sign-in, then where the visitor was going). */
+export function welcomePath(next?: unknown): string {
+  const target = safeNext(next);
+  return target === "/" ? WELCOME_PATH : `${WELCOME_PATH}?next=${encodeURIComponent(target)}`;
+}
+
 function hasUnsafeChar(value: string): boolean {
   for (let i = 0; i < value.length; i++) {
     const code = value.charCodeAt(i);
@@ -68,5 +75,5 @@ function isAuthPage(pathname: string): boolean {
     // Keep the raw value: a malformed escape is not an auth page.
   }
   path = path.toLowerCase().replace(/\/+$/, "");
-  return path === LOGIN_PATH || path === "/auth" || path.startsWith("/auth/");
+  return path === LOGIN_PATH || path === WELCOME_PATH || path === "/auth" || path.startsWith("/auth/");
 }

@@ -1,8 +1,9 @@
 "use server";
-// Login form action (used with useActionState): checks the address, then asks
-// Supabase to email a magic link that lands on /auth/confirm.
+// Login form action (used with useActionState): checks the address (well formed,
+// and invited: public.can_sign_in), then asks Supabase to email a magic link that
+// lands on /auth/confirm.
 import { cookies } from "next/headers";
-import { allowList, isAllowedEmail, isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
+import { isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
 import { type LoginErrorCode, loginErrorCode, redactEmails } from "@/lib/auth/login-error";
 import { CONFIRM_PATH, NEXT_COOKIE, NEXT_COOKIE_MAX_AGE, safeNext } from "@/lib/auth/redirect";
 import { getRequestOrigin } from "@/lib/auth/site-url";
@@ -22,13 +23,16 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   const fail = (code: LoginErrorCode): LoginState => ({ status: "error", code, email: typed });
 
   if (!isValidEmail(email)) return fail("badEmail");
-  const domains = allowList();
-  if (domains.length === 0) {
-    // Fail closed, but say it is our fault rather than the visitor's address.
-    console.error("[login] ALLOWED_EMAIL_DOMAINS is empty: nobody can sign in");
+
+  const supabase = await createClient();
+  // Invited (or already has an account). The database refuses anyone else anyway
+  // (trigger on auth.users); asking first gives a clear message and sends nothing.
+  const { data: allowed, error: checkError } = await supabase.rpc("can_sign_in", { p_email: email });
+  if (checkError) {
+    console.error("[login] can_sign_in failed", { code: checkError.code, message: redactEmails(checkError.message) });
     return fail("sendError");
   }
-  if (!isAllowedEmail(email, domains)) return fail("badDomain");
+  if (allowed !== true) return fail("badDomain");
 
   // The emailed link cannot carry `next` (the templates append ?token_hash=… to
   // the redirect URL), so /auth/confirm reads it from this cookie.
@@ -41,7 +45,6 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   });
 
   const origin = await getRequestOrigin();
-  const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: `${origin}${CONFIRM_PATH}`, shouldCreateUser: true },
