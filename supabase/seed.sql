@@ -16,6 +16,8 @@
 -- ##     values ('<matteo-email>'), ('<khalifa-email>')   -- lower case                     ##
 -- ##     on conflict do nothing;                                                            ##
 -- ##                                                                                       ##
+-- ##   One person outside these domains: insert into private.allowed_emails (email)         ##
+-- ##   values ('<their-address>') — never allow a whole public provider (gmail, proton…).   ##
 -- ##   Until step 1 is done NOBODY can sign up (the check fails closed). Step 2 works in    ##
 -- ##   any order: an existing profile is promoted as soon as its email is added.            ##
 -- ##   Keep ALLOWED_EMAIL_DOMAINS (Vercel env) equal to the list of step 1.                 ##

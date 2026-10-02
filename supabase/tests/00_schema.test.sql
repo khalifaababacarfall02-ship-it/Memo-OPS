@@ -20,7 +20,7 @@ select enum_has_labels('public', 'memo_status', array['draft', 'to_decide', 'dec
 
 -- ---------- tables ----------
 select tables_are('public', array['profiles', 'team_members', 'memos', 'memo_answers'], 'public has exactly the four app tables');
-select tables_are('private', array['allowed_email_domains', 'bootstrap_admins'], 'private has the two configuration tables');
+select tables_are('private', array['allowed_email_domains', 'allowed_emails', 'bootstrap_admins'], 'private has the three configuration tables');
 select columns_are('public', 'memos',
   array['id', 'team', 'lang', 'title', 'author_id', 'decider_id', 'status', 'content', 'asana_task_gid',
         'search_text', 'decided_at', 'created_at', 'updated_at'],

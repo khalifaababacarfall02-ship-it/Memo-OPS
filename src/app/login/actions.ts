@@ -2,7 +2,7 @@
 // Login form action (used with useActionState): checks the address, then asks
 // Supabase to email a magic link that lands on /auth/confirm.
 import { cookies } from "next/headers";
-import { allowedDomains, isAllowedEmail, isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
+import { allowList, isAllowedEmail, isValidEmail, normalizeEmail } from "@/lib/auth/allowed-email";
 import { type LoginErrorCode, loginErrorCode, redactEmails } from "@/lib/auth/login-error";
 import { CONFIRM_PATH, NEXT_COOKIE, NEXT_COOKIE_MAX_AGE, safeNext } from "@/lib/auth/redirect";
 import { getRequestOrigin } from "@/lib/auth/site-url";
@@ -22,7 +22,7 @@ export async function sendMagicLink(_prev: LoginState, formData: FormData): Prom
   const fail = (code: LoginErrorCode): LoginState => ({ status: "error", code, email: typed });
 
   if (!isValidEmail(email)) return fail("badEmail");
-  const domains = allowedDomains();
+  const domains = allowList();
   if (domains.length === 0) {
     // Fail closed, but say it is our fault rather than the visitor's address.
     console.error("[login] ALLOWED_EMAIL_DOMAINS is empty: nobody can sign in");

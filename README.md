@@ -67,9 +67,11 @@ tests, build and the database tests on every pull request.
    npx supabase db push
    ```
 3. **Before anyone signs in**, in *SQL Editor*, allow the BoxHero email domain(s)
-   and name the first admins (lower case). Until then nobody can sign up.
+   — and/or single addresses outside it — and name the first admins (lower case).
+   Until then nobody can sign up.
    ```sql
    insert into private.allowed_email_domains (domain) values ('<boxhero-domain>') on conflict do nothing;
+   insert into private.allowed_emails (email) values ('<one-person@another-domain>') on conflict do nothing;  -- optional
    insert into private.bootstrap_admins (email) values ('<matteo-email>'), ('<khalifa-email>') on conflict do nothing;
    ```
 4. *Authentication → URL Configuration*
@@ -94,7 +96,7 @@ tests, build and the database tests on every pull request.
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | Supabase *Project Settings → API* URL |
    | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the publishable key (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`) |
-   | `ALLOWED_EMAIL_DOMAINS` | same domain list as step 1.3, comma-separated |
+   | `ALLOWED_EMAIL_DOMAINS` | same list as step 1.3, comma-separated: domains and/or exact addresses |
    | `NEXT_PUBLIC_SITE_URL` | optional, production URL |
    | `ASANA_ACCESS_TOKEN`, `ASANA_PROJECT_GID` | phase 2, optional (see below) |
 

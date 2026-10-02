@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/login/LoginForm";
 import { SoloStyles } from "@/components/notfound/SoloStyles";
 import { AppFrame } from "@/components/shell/AppFrame";
-import { allowedDomains } from "@/lib/auth/allowed-email";
+import { firstAllowedDomain } from "@/lib/auth/allowed-email";
 import { safeNext } from "@/lib/auth/redirect";
 import { doc, fmt, ui } from "@/lib/content";
 import { getLang } from "@/lib/i18n";
@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   // anything else is reported as a failed sending.
   const code = first(params.error);
   const initialError = !code ? null : code === "auth" ? u.authError : code === "profile" ? u.profileMissing : u.sendError;
-  const domain = allowedDomains()[0];
+  const domain = firstAllowedDomain();
 
   return (
     <AppFrame

@@ -55,6 +55,7 @@ is the ad mini memo), `memo_lang` = `fr | en`, `memo_status` = `draft | to_decid
 | `memos` | `id`, `team`, `lang`, `title`, `author_id` → profiles, `decider_id` → profiles, `status`, `content jsonb`, `asana_task_gid`, `search_text`, `decided_at`, `created_at`, `updated_at` |
 | `memo_answers` | `memo_id` → memos (cascade), `question_id` (id of a question in `content.qs`), `answer`, `answered_by` → profiles, `created_at`, `updated_at`; PK (memo_id, question_id) |
 | `private.allowed_email_domains` | `domain` — who may sign up (not exposed through the API) |
+| `private.allowed_emails` | `email` — single addresses allowed to sign up outside those domains |
 | `private.bootstrap_admins` | `email` — profiles created with these emails get `is_admin = true` (Mattéo, Khalifa) |
 
 `memos.content` holds the document without the title (see `src/lib/memo/model.ts`):
@@ -141,7 +142,9 @@ copy); the value goes only through `.ilike()`. A typed `*` becomes `_` because P
 ### Sign-up restriction
 
 `auth.users` BEFORE INSERT trigger rejects emails whose domain is not in
-`private.allowed_email_domains` (fail closed: empty table = nobody can sign up).
+`private.allowed_email_domains` and that are not listed one by one in `private.allowed_emails`
+(fail closed: both empty = nobody can sign up). `ALLOWED_EMAIL_DOMAINS` mirrors both lists
+(domains and/or exact addresses).
 AFTER INSERT creates the `profiles` row (`full_name` from metadata or the email's local part,
 `is_admin` from `private.bootstrap_admins`). The app also checks `ALLOWED_EMAIL_DOMAINS`
 before calling Supabase, to show a friendly message.
@@ -173,7 +176,7 @@ Email magic link (passwordless), `@supabase/ssr` cookies.
 
 Supabase Auth hides the trigger's message when it rejects a domain: `signInWithOtp` returns a 500
 "Database error saving new user". The app checks `ALLOWED_EMAIL_DOMAINS` first and maps that 500
-to `badDomain`. Keep the env var and `private.allowed_email_domains` in sync.
+to `badDomain`. Keep the env var and the two `private.allowed_*` tables in sync.
 
 `getViewer()` (`src/lib/auth/viewer.ts`, request-cached) returns
 `{ id, email, fullName, isAdmin, teams }` or `null`; `requireViewer()` redirects to `/login`.

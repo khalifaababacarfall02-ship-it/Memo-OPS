@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { allowedDomains, isAllowedEmail, isValidEmail, normalizeEmail, parseAllowedDomains } from "./allowed-email";
+import { allowList, firstAllowedDomain, isAllowedEmail, isValidEmail, normalizeEmail, parseAllowList } from "./allowed-email";
 
 describe("normalizeEmail", () => {
   it("trims and lower-cases", () => {
@@ -13,9 +13,9 @@ describe("normalizeEmail", () => {
   });
 });
 
-describe("parseAllowedDomains", () => {
+describe("parseAllowList", () => {
   it("accepts commas, semicolons, spaces, case and leading @", () => {
-    expect(parseAllowedDomains(" BoxHero.com, @boxhero.fr;boxhero.co.uk\n  @@team.boxhero.io ")).toEqual([
+    expect(parseAllowList(" BoxHero.com, @boxhero.fr;boxhero.co.uk\n  @@team.boxhero.io ")).toEqual([
       "boxhero.com",
       "boxhero.fr",
       "boxhero.co.uk",
@@ -24,16 +24,23 @@ describe("parseAllowedDomains", () => {
   });
 
   it("drops duplicates, empty and invalid entries", () => {
-    expect(parseAllowedDomains("boxhero.com,,BOXHERO.COM, *, localhost, -bad.com, x@y.com, boxhero.com.")).toEqual([
+    expect(parseAllowList("boxhero.com,,BOXHERO.COM, *, localhost, -bad.com, x@y, @@, boxhero.com.")).toEqual([
       "boxhero.com",
     ]);
   });
 
+  it("keeps exact addresses next to domains", () => {
+    expect(parseAllowList("boxhero.com, Khalifa.BoxHero@Proton.me; khalifa.boxhero@proton.me")).toEqual([
+      "boxhero.com",
+      "khalifa.boxhero@proton.me",
+    ]);
+  });
+
   it("is empty when not configured", () => {
-    expect(parseAllowedDomains(undefined)).toEqual([]);
-    expect(parseAllowedDomains(null)).toEqual([]);
-    expect(parseAllowedDomains("")).toEqual([]);
-    expect(parseAllowedDomains(" , ")).toEqual([]);
+    expect(parseAllowList(undefined)).toEqual([]);
+    expect(parseAllowList(null)).toEqual([]);
+    expect(parseAllowList("")).toEqual([]);
+    expect(parseAllowList(" , ")).toEqual([]);
   });
 });
 
@@ -120,20 +127,36 @@ describe("isAllowedEmail", () => {
   it("fails closed with no domains", () => {
     expect(isAllowedEmail("matteo@boxhero.com", [])).toBe(false);
   });
+
+  it("accepts an exact listed address only, not its whole domain", () => {
+    const list = ["boxhero.com", "solo@proton.me"];
+    expect(isAllowedEmail(" Solo@Proton.ME ", list)).toBe(true);
+    expect(isAllowedEmail("someone.else@proton.me", list)).toBe(false);
+    expect(isAllowedEmail("solo@proton.me.evil.com", list)).toBe(false);
+    expect(isAllowedEmail("xsolo@proton.me", list)).toBe(false);
+    expect(isAllowedEmail("matteo@boxhero.com", list)).toBe(true);
+  });
 });
 
-describe("allowedDomains", () => {
+describe("allowList", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
   it("reads ALLOWED_EMAIL_DOMAINS", () => {
     vi.stubEnv("ALLOWED_EMAIL_DOMAINS", "BoxHero.com, @boxhero.fr");
-    expect(allowedDomains()).toEqual(["boxhero.com", "boxhero.fr"]);
+    expect(allowList()).toEqual(["boxhero.com", "boxhero.fr"]);
   });
 
   it("is empty when the variable is missing", () => {
     vi.stubEnv("ALLOWED_EMAIL_DOMAINS", "");
-    expect(allowedDomains()).toEqual([]);
+    expect(allowList()).toEqual([]);
+  });
+
+  it("gives the first domain for the login placeholder, skipping addresses", () => {
+    vi.stubEnv("ALLOWED_EMAIL_DOMAINS", "solo@proton.me, boxhero.com");
+    expect(firstAllowedDomain()).toBe("boxhero.com");
+    vi.stubEnv("ALLOWED_EMAIL_DOMAINS", "solo@proton.me");
+    expect(firstAllowedDomain()).toBeUndefined();
   });
 });
